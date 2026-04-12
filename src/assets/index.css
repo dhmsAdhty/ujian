@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+}
+
+@layer components {
+  /* Clean surfaces — subtle depth, no heavy glass */
+  .glass-card {
+    @apply rounded-xl border border-zinc-200/90 bg-white shadow-sm;
+  }
+
+  .glass-panel {
+    @apply border-zinc-200/90 bg-white/90 backdrop-blur-md;
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-primary-400;
+  }
+
+  .form-input {
+    @apply w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 shadow-sm outline-none transition-colors
+      placeholder:text-zinc-400
+      focus:border-primary-500 focus:ring-2 focus:ring-primary-500/15;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply rounded-full bg-zinc-200;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-zinc-300;
+}
+
+body {
+  @apply min-h-screen overflow-x-hidden bg-zinc-50 font-sans text-zinc-900 antialiased;
+}
+
+/* Very subtle grid — optional depth without noise */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(to right, rgb(24 24 27 / 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(24 24 27 / 0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+}
