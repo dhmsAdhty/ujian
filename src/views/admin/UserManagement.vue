@@ -1,168 +1,189 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { supabase } from '@/services/supabase'
-import { 
-  Users, 
-  Search, 
-  ChevronLeft, 
-  ChevronRight, 
-  MoreVertical,
-  UserPlus,
-  Mail,
-  Calendar,
-  ShieldCheck,
-  ShieldAlert,
-  ArrowUpDown
+import {
+  Users, Search, ChevronLeft, ChevronRight, UserPlus,
+  Mail, Calendar, ShieldCheck, ShieldAlert, ArrowUpDown,
+  Pencil, Trash2, Upload,
 } from 'lucide-vue-next'
-import { GlassCard, PrimaryButton, FormInput, EmptyState } from '@/components/ui'
+import { GlassCard, PrimaryButton, FormInput, EmptyState, AppSelect } from '@/components/ui'
+import UserModal from '@/components/admin/UserModal.vue'
+import UserImportModal from '@/components/admin/UserImportModal.vue'
 import Swal from 'sweetalert2'
 
-// State
 const users = ref([])
 const loading = ref(true)
 const searchQuery = ref('')
 const roleFilter = ref('')
 const page = ref(1)
-const pageSize = 10
+const pageSize = ref(10)
 const totalCount = ref(0)
 const sortBy = ref('created_at')
 const sortOrder = ref('desc')
+const showUserModal = ref(false)
+const showImportModal = ref(false)
+const editingUser = ref(null)
 
-// Fetch Logic (Server-Side)
 const fetchUsers = async () => {
   loading.value = true
-  const from = (page.value - 1) * pageSize
-  const to = from + pageSize - 1
-
+  const from = (page.value - 1) * pageSize.value
+  const to = from + pageSize.value - 1
   let query = supabase
     .from('profiles')
     .select('*', { count: 'exact' })
     .range(from, to)
     .order(sortBy.value, { ascending: sortOrder.value === 'asc' })
-
-  if (searchQuery.value) {
-    query = query.ilike('full_name', `%${searchQuery.value}%`)
-  }
-
-  if (roleFilter.value) {
-    query = query.eq('role', roleFilter.value)
-  }
-
+  if (searchQuery.value) query = query.ilike('full_name', `%${searchQuery.value}%`)
+  if (roleFilter.value) query = query.eq('role', roleFilter.value)
   const { data, count, error } = await query
-
-  if (error) {
-    Swal.fire('Error', error.message, 'error')
-  } else {
-    users.value = data
-    totalCount.value = count || 0
-  }
+  if (error) Swal.fire('Error', error.message, 'error')
+  else { users.value = data; totalCount.value = count || 0 }
   loading.value = false
 }
 
-// Watchers for reactive fetching
-watch([searchQuery, roleFilter, sortBy, sortOrder], () => {
-  page.value = 1
-  fetchUsers()
-})
-
+watch([searchQuery, roleFilter, sortBy, sortOrder, pageSize], () => { page.value = 1; fetchUsers() })
 watch(page, fetchUsers)
-
 onMounted(fetchUsers)
 
 const toggleSort = (field) => {
-  if (sortBy.value === field) {
-    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
-  } else {
-    sortBy.value = field
-    sortOrder.value = 'desc'
+  if (sortBy.value === field) sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+  else { sortBy.value = field; sortOrder.value = 'desc' }
+}
+
+const openAdd = () => { editingUser.value = null; showUserModal.value = true }
+const openEdit = (user) => { editingUser.value = user; showUserModal.value = true }
+
+const handleDelete = async (user) => {
+  const result = await Swal.fire({
+    title: `Hapus ${user.full_name}?`,
+    text: 'Akun ini akan dihapus secara permanen dari sistem.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#e31a1a',
+    confirmButtonText: 'Ya, Hapus',
+    cancelButtonText: 'Batal',
+  })
+  if (!result.isConfirmed) return
+
+  // Hapus via RPC function (security definer) agar bisa hapus auth.users
+  const { error } = await supabase.rpc('delete_user_by_id', { target_user_id: user.id })
+
+  if (error) {
+    // Fallback: hapus profiles saja jika RPC belum ada
+    const { error: profileError } = await supabase.from('profiles').delete().eq('id', user.id)
+    if (profileError) {
+      Swal.fire('Gagal', profileError.message, 'error')
+      return
+    }
   }
+
+  Swal.fire({ icon: 'success', title: 'Berhasil dihapus', timer: 1200, showConfirmButton: false })
+  fetchUsers()
 }
 
-const getRoleBadgeClass = (role) => {
-  if (role === 'admin') return 'bg-red-100 text-red-700'
-  if (role === 'guru') return 'bg-orange-100 text-orange-700'
-  return 'bg-blue-100 text-blue-700'
+const totalPages = () => Math.ceil(totalCount.value / pageSize.value)
+
+const roleBadge = (role) => {
+  if (role === 'admin') return { cls: 'bg-red-50 text-red-700 ring-1 ring-red-100', icon: ShieldAlert }
+  if (role === 'guru') return { cls: 'bg-amber-50 text-amber-700 ring-1 ring-amber-100', icon: ShieldCheck }
+  return { cls: 'bg-blue-50 text-blue-700 ring-1 ring-blue-100', icon: Users }
 }
 
-const getRoleIcon = (role) => {
-  if (role === 'admin') return ShieldAlert
-  if (role === 'guru') return ShieldCheck
-  return Users
+const initials = (name) => {
+  if (!name) return '?'
+  const parts = name.trim().split(/\s+/)
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+  return name.slice(0, 2).toUpperCase()
+}
+
+const avatarColor = (name) => {
+  const colors = [
+    'bg-primary-100 text-primary-700',
+    'bg-emerald-100 text-emerald-700',
+    'bg-amber-100 text-amber-700',
+    'bg-blue-100 text-blue-700',
+    'bg-purple-100 text-purple-700',
+  ]
+  return colors[(name?.charCodeAt(0) || 0) % colors.length]
 }
 </script>
 
 <template>
-  <div class="space-y-8 animate-fade-in">
-    <!-- Header Area -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+  <div class="animate-fade-in space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col justify-between gap-4 md:flex-row md:items-center">
       <div>
-        <h1 class="text-3xl font-bold text-slate-900 tracking-tight">Manajemen User</h1>
-        <p class="text-slate-500 mt-1">Kelola data login, hak akses, dan profil seluruh civitas sekolah.</p>
+        <h1 class="text-2xl font-bold tracking-tight text-venus-900">Manajemen User</h1>
+        <p class="mt-1 text-sm text-venus-400">Kelola akun, hak akses, dan profil civitas sekolah.</p>
       </div>
-      <PrimaryButton class="shadow-xl">
-        <UserPlus :size="18" />
-        Tambah User
-      </PrimaryButton>
+      <div class="flex flex-wrap gap-2">
+        <button
+          type="button"
+          class="pressable-soft flex items-center gap-2 rounded-xl border border-venus-200 bg-white px-4 py-2.5 text-sm font-semibold text-venus-700 shadow-ios-sm transition-colors hover:bg-venus-50"
+          @click="showImportModal = true"
+        >
+          <Upload :size="16" />
+          Import Excel
+        </button>
+        <PrimaryButton @click="openAdd">
+          <UserPlus :size="16" />
+          Tambah User
+        </PrimaryButton>
+      </div>
     </div>
 
-    <!-- Filters & Search -->
+    <!-- Filters -->
     <GlassCard padding="p-4">
-      <div class="flex flex-col lg:flex-row gap-4 items-center">
-        <div class="w-full lg:flex-1">
-          <FormInput 
-            v-model="searchQuery"
-            placeholder="Cari berdasarkan nama lengkap..."
-            :icon="Search"
-          />
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div class="flex-1">
+          <FormInput v-model="searchQuery" placeholder="Cari nama lengkap..." :icon="Search" />
         </div>
-        <div class="flex gap-4 w-full lg:w-auto">
-          <select 
+        <div class="flex shrink-0 gap-3">
+          <AppSelect
             v-model="roleFilter"
-            class="form-input lg:w-48 bg-white border-slate-200"
-          >
-            <option value="">Semua Role</option>
-            <option value="admin">Administrator</option>
-            <option value="guru">Guru</option>
-            <option value="siswa">Siswa</option>
-          </select>
-          <select 
-            class="form-input lg:w-48 bg-white border-slate-200"
-            @change="page = 1; fetchUsers()"
-          >
-            <option value="10">10 Per Halaman</option>
-            <option value="25">25 Per Halaman</option>
-            <option value="50">50 Per Halaman</option>
-          </select>
+            placeholder="Semua Role"
+            :options="[
+              { value: 'admin', label: 'Administrator' },
+              { value: 'guru', label: 'Guru' },
+              { value: 'siswa', label: 'Siswa' },
+            ]"
+            class="w-44"
+          />
+          <AppSelect
+            v-model="pageSize"
+            :options="[
+              { value: 10, label: '10 / hal' },
+              { value: 25, label: '25 / hal' },
+              { value: 50, label: '50 / hal' },
+            ]"
+            class="w-32"
+          />
         </div>
       </div>
     </GlassCard>
 
-    <!-- Content Table -->
+    <!-- Table -->
     <GlassCard padding="p-0" class="overflow-hidden">
       <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse">
+        <table class="w-full border-collapse text-left">
           <thead>
-            <tr class="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-[2px] border-b border-slate-100">
-              <th @click="toggleSort('full_name')" class="py-5 px-6 cursor-pointer hover:text-primary-600 transition-colors">
-                <div class="flex items-center gap-2">
-                  Nama Lengkap <ArrowUpDown :size="12" />
-                </div>
+            <tr class="border-b border-venus-100 bg-venus-50/60 text-[10px] font-black uppercase tracking-[2px] text-venus-400">
+              <th class="cursor-pointer px-6 py-4 hover:opacity-70" @click="toggleSort('full_name')">
+                <div class="flex items-center gap-1.5">Nama <ArrowUpDown :size="11" /></div>
               </th>
-              <th class="py-5 px-6">Email / Username</th>
-              <th class="py-5 px-6">Role</th>
-              <th @click="toggleSort('last_login')" class="py-5 px-6 cursor-pointer hover:text-primary-600 transition-colors">
-                <div class="flex items-center gap-2">
-                  Terakhir Login <ArrowUpDown :size="12" />
-                </div>
+              <th class="px-6 py-4">Email</th>
+              <th class="px-6 py-4">Role</th>
+              <th class="cursor-pointer px-6 py-4 hover:opacity-70" @click="toggleSort('last_login')">
+                <div class="flex items-center gap-1.5">Login Terakhir <ArrowUpDown :size="11" /></div>
               </th>
-              <th class="py-5 px-6 text-right">Aksi</th>
+              <th class="px-6 py-4 text-right">Aksi</th>
             </tr>
           </thead>
-          
+
           <tbody v-if="loading">
-            <tr v-for="i in 5" :key="i" class="border-b border-slate-50/50">
-              <td v-for="j in 5" :key="j" class="py-6 px-6">
-                <div class="h-4 bg-slate-100 rounded-full animate-pulse"></div>
+            <tr v-for="i in 5" :key="i" class="border-b border-venus-50">
+              <td v-for="j in 5" :key="j" class="px-6 py-5">
+                <div class="h-3.5 animate-pulse rounded-full bg-venus-100" />
               </td>
             </tr>
           </tbody>
@@ -170,94 +191,82 @@ const getRoleIcon = (role) => {
           <tbody v-else-if="users.length === 0">
             <tr>
               <td colspan="5">
-                <EmptyState 
-                  title="User Tidak Ditemukan"
-                  description="Coba gunakan kata kunci pencarian lain atau ubah filter role."
-                />
+                <EmptyState title="User Tidak Ditemukan" description="Coba ubah kata kunci atau filter role." />
               </td>
             </tr>
           </tbody>
 
-          <tbody v-else class="divide-y divide-slate-50">
-            <tr v-for="user in users" :key="user.id" class="group hover:bg-slate-50/50 transition-all duration-300">
-              <td class="py-5 px-6">
+          <tbody v-else class="divide-y divide-venus-50">
+            <tr v-for="user in users" :key="user.id" class="group transition-colors hover:bg-venus-50/40">
+              <td class="px-6 py-4">
                 <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center font-bold text-slate-600 border border-white">
-                    {{ user.full_name?.charAt(0) || 'U' }}
+                  <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-black" :class="avatarColor(user.full_name)">
+                    {{ initials(user.full_name) }}
                   </div>
-                  <span class="font-bold text-slate-700 tracking-tight">{{ user.full_name }}</span>
+                  <span class="font-semibold text-venus-800">{{ user.full_name }}</span>
                 </div>
               </td>
-              <td class="py-5 px-6">
-                <div class="flex flex-col">
-                  <span class="text-sm font-medium text-slate-600 flex items-center gap-1.5">
-                    <Mail :size="14" class="text-slate-400" />
-                    {{ user.email }}
-                  </span>
-                  <span class="text-[10px] text-slate-400 mt-0.5 ml-5 uppercase font-bold tracking-wider">ID: {{ user.id.split('-')[0] }}</span>
+              <td class="px-6 py-4">
+                <div class="flex items-center gap-1.5 text-sm text-venus-500">
+                  <Mail :size="13" class="shrink-0 text-venus-300" />
+                  {{ user.email }}
                 </div>
               </td>
-              <td class="py-5 px-6">
-                <span 
-                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider"
-                  :class="getRoleBadgeClass(user.role)"
-                >
-                  <component :is="getRoleIcon(user.role)" :size="12" />
+              <td class="px-6 py-4">
+                <span class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-wider" :class="roleBadge(user.role).cls">
+                  <component :is="roleBadge(user.role).icon" :size="11" />
                   {{ user.role }}
                 </span>
               </td>
-              <td class="py-5 px-6 text-sm text-slate-500 font-medium">
-                <div class="flex items-center gap-2">
-                  <Calendar :size="14" />
-                  {{ user.last_login ? new Date(user.last_login).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : 'Belum Pernah' }}
+              <td class="px-6 py-4">
+                <div class="flex items-center gap-1.5 text-sm text-venus-400">
+                  <Calendar :size="13" class="shrink-0" />
+                  {{ user.last_login ? new Date(user.last_login).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : 'Belum pernah' }}
                 </div>
               </td>
-              <td class="py-5 px-6 text-right">
-                <button class="p-2 hover:bg-white hover:shadow-sm rounded-lg text-slate-400 hover:text-primary-500 transition-all">
-                  <MoreVertical :size="18" />
-                </button>
+              <td class="px-6 py-4">
+                <div class="flex items-center justify-end gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                  <button type="button" class="pressable-soft rounded-lg border border-venus-100 bg-white p-2 text-venus-400 shadow-ios-sm hover:border-primary-200 hover:text-primary-600" title="Edit" @click="openEdit(user)">
+                    <Pencil :size="15" />
+                  </button>
+                  <button type="button" class="pressable-soft rounded-lg border border-venus-100 bg-white p-2 text-venus-400 shadow-ios-sm hover:border-red-200 hover:text-red-600" title="Hapus" @click="handleDelete(user)">
+                    <Trash2 :size="15" />
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <!-- Pagination Footer -->
-      <div v-if="!loading && users.length > 0" class="px-6 py-5 bg-slate-50/50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <p class="text-sm font-bold text-slate-500">
-          Showing <span class="text-slate-900">{{ (page - 1) * pageSize + 1 }}</span> to <span class="text-slate-900">{{ Math.min(page * pageSize, totalCount) }}</span> of <span class="text-slate-900">{{ totalCount }}</span> results
+      <!-- Pagination -->
+      <div v-if="!loading && users.length > 0" class="flex flex-col items-center justify-between gap-4 border-t border-venus-100 bg-venus-50/40 px-6 py-4 sm:flex-row">
+        <p class="text-sm text-venus-400">
+          Menampilkan
+          <span class="font-semibold text-venus-700">{{ (page - 1) * pageSize + 1 }}</span>–<span class="font-semibold text-venus-700">{{ Math.min(page * pageSize, totalCount) }}</span>
+          dari <span class="font-semibold text-venus-700">{{ totalCount }}</span> user
         </p>
-        <div class="flex items-center gap-2">
-          <button 
-            @click="page--"
-            :disabled="page === 1"
-            class="p-2.5 rounded-xl border border-slate-200 hover:bg-white disabled:opacity-40 disabled:hover:bg-transparent transition-all"
-          >
-            <ChevronLeft :size="18" />
+        <div class="flex items-center gap-1.5">
+          <button :disabled="page === 1" class="pressable-soft rounded-lg border border-venus-100 bg-white p-2 text-venus-400 shadow-ios-sm hover:border-venus-200 disabled:opacity-40" @click="page--">
+            <ChevronLeft :size="16" />
           </button>
-          
-          <div class="flex items-center">
-            <button 
-              v-for="p in Math.ceil(totalCount / pageSize)" 
-              :key="p"
+          <template v-for="p in totalPages()" :key="p">
+            <button
+              v-show="Math.abs(p - page) <= 1 || p === 1 || p === totalPages()"
+              class="h-8 w-8 rounded-lg text-sm font-semibold transition-colors"
+              :class="page === p ? 'bg-primary-600 text-white shadow-ios-sm' : 'text-venus-500 hover:bg-venus-100'"
               @click="page = p"
-              class="w-10 h-10 rounded-xl text-sm font-bold transition-all"
-              :class="page === p ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25' : 'text-slate-500 hover:bg-white hover:text-primary-600'"
-              v-show="Math.abs(p - page) <= 1 || p === 1 || p === Math.ceil(totalCount / pageSize)"
-            >
-              {{ p }}
-            </button>
-          </div>
-
-          <button 
-            @click="page++"
-            :disabled="page >= Math.ceil(totalCount / pageSize)"
-            class="p-2.5 rounded-xl border border-slate-200 hover:bg-white disabled:opacity-40 disabled:hover:bg-transparent transition-all"
-          >
-            <ChevronRight :size="18" />
+            >{{ p }}</button>
+            <span v-if="(p === 1 && page > 3) || (p === totalPages() - 1 && page < totalPages() - 2)" class="px-1 text-venus-300">…</span>
+          </template>
+          <button :disabled="page >= totalPages()" class="pressable-soft rounded-lg border border-venus-100 bg-white p-2 text-venus-400 shadow-ios-sm hover:border-venus-200 disabled:opacity-40" @click="page++">
+            <ChevronRight :size="16" />
           </button>
         </div>
       </div>
     </GlassCard>
+
+    <UserModal :show="showUserModal" :edit-user="editingUser" @close="showUserModal = false" @saved="fetchUsers" />
+    <UserImportModal :show="showImportModal" @close="showImportModal = false" @imported="fetchUsers" />
   </div>
 </template>

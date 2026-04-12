@@ -2,7 +2,7 @@
 defineProps({
   hover: {
     type: Boolean,
-    default: true
+    default: false
   },
   padding: {
     type: String,
@@ -13,10 +13,10 @@ defineProps({
 
 <template>
   <div
-    class="glass-card overflow-hidden transition-[box-shadow,border-color] duration-200"
+    class="glass-card overflow-hidden transition-[box-shadow,border-color] duration-250 ease-ios"
     :class="[
       padding,
-      hover ? 'hover:border-zinc-300 hover:shadow-md' : ''
+      hover ? 'hover:border-venus-300/90 hover:shadow-ios-md' : ''
     ]"
   >
     <slot />

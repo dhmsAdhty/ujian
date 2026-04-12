@@ -18,19 +18,19 @@ const stats = [
   <div class="animate-fade-in space-y-8">
     <div class="flex flex-col justify-between gap-4 md:flex-row md:items-center">
       <div>
-        <h1 class="text-2xl font-semibold tracking-tight text-zinc-900">Ringkasan</h1>
-        <p class="mt-1 text-sm text-zinc-500">Performa sistem dan aktivitas akademik.</p>
+        <h1 class="text-2xl font-semibold tracking-tight text-venus-900">Ringkasan</h1>
+        <p class="mt-1 text-sm text-venus-500">Performa sistem dan aktivitas akademik.</p>
       </div>
       <div class="flex flex-wrap gap-2">
         <button
           type="button"
-          class="rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-800 shadow-sm transition-colors hover:bg-zinc-50"
+          class="pressable-soft rounded-xl border border-venus-200/90 bg-white px-4 py-2 text-sm font-medium text-venus-800 shadow-ios-sm transition-[background-color,transform] duration-200 ease-ios active:bg-venus-100"
         >
           Unduh laporan
         </button>
         <button
           type="button"
-          class="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primary-700"
+          class="pressable rounded-xl bg-primary-600 px-4 py-2 text-sm font-medium text-white shadow-ios-sm transition-[background-color,transform] duration-200 ease-ios active:bg-primary-700"
         >
           Ujian baru
         </button>
@@ -51,10 +51,10 @@ const stats = [
 
         <GlassCard padding="p-6">
           <div class="mb-5 flex items-center justify-between gap-3">
-            <h3 class="text-lg font-semibold tracking-tight text-zinc-900">Ujian berlangsung</h3>
+            <h3 class="text-lg font-semibold tracking-tight text-venus-900">Ujian berlangsung</h3>
             <button
               type="button"
-              class="text-sm font-medium text-primary-600 hover:text-primary-700"
+              class="rounded-lg px-1 py-0.5 text-sm font-medium text-primary-600 transition-opacity active:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500/30"
             >
               Lihat semua
             </button>
@@ -63,15 +63,15 @@ const stats = [
           <div class="overflow-x-auto">
             <table class="w-full text-left text-sm">
               <thead>
-                <tr class="border-b border-zinc-100 text-left text-xs font-medium text-zinc-500">
+                <tr class="border-b border-venus-100 text-left text-xs font-medium text-venus-500">
                   <th class="pb-3 pl-1">Mata pelajaran</th>
                   <th class="pb-3">Kelas</th>
                   <th class="pb-3">Progress</th>
                   <th class="pb-3 pr-1 text-right">Status</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-zinc-50">
-                <tr v-for="i in 3" :key="i" class="transition-colors hover:bg-zinc-50/80">
+              <tbody class="divide-y divide-venus-100">
+                <tr v-for="i in 3" :key="i">
                   <td class="py-3 pl-1">
                     <div class="flex items-center gap-3">
                       <div
@@ -79,16 +79,16 @@ const stats = [
                       >
                         MTK
                       </div>
-                      <span class="font-medium text-zinc-800">Matematika Wajib</span>
+                      <span class="font-medium text-venus-800">Matematika Wajib</span>
                     </div>
                   </td>
-                  <td class="py-3 text-zinc-600">XII MIPA 1, 2</td>
+                  <td class="py-3 text-venus-600">XII MIPA 1, 2</td>
                   <td class="py-3">
                     <div class="flex w-40 max-w-full items-center gap-2">
-                      <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-100">
+                      <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-venus-100">
                         <div class="h-full w-[75%] rounded-full bg-primary-500" />
                       </div>
-                      <span class="text-xs tabular-nums text-zinc-500">75%</span>
+                      <span class="text-xs tabular-nums text-venus-500">75%</span>
                     </div>
                   </td>
                   <td class="py-3 pr-1 text-right">

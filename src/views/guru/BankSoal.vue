@@ -14,7 +14,7 @@ import {
   ChevronRight,
   FileDown
 } from 'lucide-vue-next'
-import { GlassCard, PrimaryButton, FormInput, EmptyState } from '@/components/ui'
+import { GlassCard, PrimaryButton, FormInput, EmptyState, AppSelect } from '@/components/ui'
 import MassImportModal from '@/components/guru/MassImportModal.vue'
 import { useRouter } from 'vue-router'
 
@@ -62,13 +62,14 @@ const handleDelete = async (id) => {
     <!-- Header Area -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
       <div>
-        <h1 class="text-3xl font-bold text-slate-900 tracking-tight">Bank Soal Saya</h1>
-        <p class="text-slate-500 mt-1">Kelola perbendaharaan soal mata pelajaran Anda.</p>
+        <h1 class="text-3xl font-semibold tracking-tight text-venus-900">Bank soal saya</h1>
+        <p class="mt-1 text-sm text-venus-500">Kelola perbendaharaan soal mata pelajaran Anda.</p>
       </div>
       <div class="flex gap-3">
-        <button 
+        <button
+          type="button"
           @click="showImportModal = true"
-          class="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 transition-all shadow-sm"
+          class="pressable-soft flex items-center gap-2 rounded-xl border border-venus-200/90 bg-white px-5 py-2.5 text-sm font-semibold text-venus-700 shadow-ios-sm transition-[background-color,transform] duration-200 ease-ios active:bg-venus-100"
         >
           <FileDown :size="18" />
           Import Massal
@@ -91,12 +92,19 @@ const handleDelete = async (id) => {
           />
         </div>
         <div class="flex gap-3 w-full lg:w-auto">
-          <select v-model="typeFilter" class="form-input lg:w-44 bg-white border-slate-200">
-            <option value="">Semua Tipe</option>
-            <option value="pilihan_ganda">Pilihan Ganda</option>
-            <option value="essay">Essay</option>
-          </select>
-          <button class="p-2.5 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition-colors">
+          <AppSelect
+            v-model="typeFilter"
+            placeholder="Semua Tipe"
+            :options="[
+              { value: 'pilihan_ganda', label: 'Pilihan Ganda' },
+              { value: 'essay', label: 'Essay' }
+            ]"
+            class="lg:w-44"
+          />
+          <button
+            type="button"
+            class="pressable-soft rounded-xl bg-venus-100 p-2.5 text-venus-600 transition-[background-color,transform] duration-200 ease-ios active:bg-venus-200"
+          >
             <Filter :size="20" />
           </button>
         </div>
@@ -123,10 +131,10 @@ const handleDelete = async (id) => {
 
     <div v-else class="space-y-6">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <GlassCard 
-          v-for="soal in items" 
+        <GlassCard
+          v-for="soal in items"
           :key="soal.id"
-          class="group relative overflow-hidden"
+          class="relative overflow-hidden"
           padding="p-6"
         >
           <!-- Type Badge -->
@@ -148,41 +156,45 @@ const handleDelete = async (id) => {
             </div>
 
             <div class="flex-1 min-w-0 pr-10">
-              <h3 class="font-bold text-slate-800 text-lg leading-tight truncate group-hover:text-primary-600 transition-colors">
+              <h3 class="truncate text-lg font-semibold leading-tight text-venus-900">
                 {{ soal.judul }}
               </h3>
               
               <div class="flex items-center gap-4 mt-3">
                 <div class="flex flex-col">
-                  <span class="text-[10px] uppercase font-bold text-slate-400 tracking-widest">Mata Pelajaran</span>
-                  <span class="text-sm font-bold text-slate-600">{{ soal.mapels?.nama || 'Umum' }}</span>
+                  <span class="text-[10px] uppercase font-bold text-venus-400 tracking-widest">Mata Pelajaran</span>
+                  <span class="text-sm font-bold text-venus-600">{{ soal.mapels?.nama || 'Umum' }}</span>
                 </div>
-                <div class="w-[1px] h-6 bg-slate-100"></div>
+                <div class="w-[1px] h-6 bg-venus-100"></div>
                 <div class="flex flex-col">
-                  <span class="text-[10px] uppercase font-bold text-slate-400 tracking-widest">Kelas</span>
-                  <span class="text-sm font-bold text-slate-600">{{ soal.kelas?.nama || 'Semua' }}</span>
+                  <span class="text-[10px] uppercase font-bold text-venus-400 tracking-widest">Kelas</span>
+                  <span class="text-sm font-bold text-venus-600">{{ soal.kelas?.nama || 'Semua' }}</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <div class="mt-6 pt-6 border-t border-slate-50 flex items-center justify-between">
+          <div class="mt-6 pt-6 border-t border-venus-50 flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <span class="text-xs font-medium text-slate-400">
+              <span class="text-xs font-medium text-venus-400">
                 Dibuat {{ new Date(soal.created_at).toLocaleDateString('id-ID') }}
               </span>
             </div>
             
-            <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-y-1 group-hover:translate-y-0">
-              <button 
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
                 @click="router.push(`/guru/soal/edit/${soal.id}`)"
-                class="p-2 bg-white text-slate-500 hover:text-blue-600 hover:shadow-md rounded-xl transition-all border border-slate-100"
+                class="pressable-soft rounded-xl border border-venus-200/80 bg-white p-2 text-venus-500 shadow-ios-sm transition-[transform,opacity] duration-200 ease-ios active:opacity-80"
+                aria-label="Edit soal"
               >
                 <Edit :size="18" />
               </button>
-              <button 
+              <button
+                type="button"
                 @click="handleDelete(soal.id)"
-                class="p-2 bg-white text-slate-500 hover:text-red-600 hover:shadow-md rounded-xl transition-all border border-slate-100"
+                class="pressable-soft rounded-xl border border-venus-200/80 bg-white p-2 text-venus-500 shadow-ios-sm transition-[transform,opacity] duration-200 ease-ios active:text-red-600"
+                aria-label="Hapus soal"
               >
                 <Trash2 :size="18" />
               </button>
@@ -193,20 +205,22 @@ const handleDelete = async (id) => {
 
       <!-- Pagination -->
       <div class="flex items-center justify-center gap-3 pt-6">
-        <button 
+        <button
+          type="button"
           @click="page--"
           :disabled="page === 1"
-          class="p-2.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-40 transition-all"
+          class="pressable-soft rounded-xl border border-venus-200/90 bg-white p-2.5 shadow-ios-sm transition-[background-color,transform] duration-200 ease-ios active:bg-venus-100 disabled:opacity-40 disabled:active:scale-100"
         >
           <ChevronLeft :size="20" />
         </button>
-        <div class="px-5 py-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700">
+        <div class="px-5 py-2.5 bg-white border border-venus-200 rounded-xl font-bold text-venus-700">
           Halaman {{ page }}
         </div>
-        <button 
+        <button
+          type="button"
           @click="page++"
           :disabled="page * 10 >= totalItems"
-          class="p-2.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-40 transition-all"
+          class="pressable-soft rounded-xl border border-venus-200/90 bg-white p-2.5 shadow-ios-sm transition-[background-color,transform] duration-200 ease-ios active:bg-venus-100 disabled:opacity-40 disabled:active:scale-100"
         >
           <ChevronRight :size="20" />
         </button>

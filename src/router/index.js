@@ -20,7 +20,11 @@ const router = createRouter({
       meta: { requiresAuth: true, role: 'admin' },
       children: [
         { path: '', name: 'admin-dashboard', component: () => import('@/views/admin/DashboardView.vue') },
-        { path: 'users', name: 'admin-users', component: () => import('@/views/admin/UserManagement.vue') }
+        { path: 'users', name: 'admin-users', component: () => import('@/views/admin/UserManagement.vue') },
+        { path: 'mapel', name: 'admin-mapel', component: () => import('@/views/admin/PlaceholderView.vue') },
+        { path: 'soal', name: 'admin-soal', component: () => import('@/views/admin/PlaceholderView.vue') },
+        { path: 'laporan', name: 'admin-laporan', component: () => import('@/views/admin/PlaceholderView.vue') },
+        { path: 'settings', name: 'admin-settings', component: () => import('@/views/admin/PlaceholderView.vue') },
       ]
     },
     {
@@ -47,22 +51,28 @@ const router = createRouter({
   ]
 })
 
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to) => {
   const authStore = useAuthStore()
-  
+
+  // Wait for session to be restored before any guard check
+  if (!authStore.initialized) {
+    await authStore.init()
+  }
+
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    next('/login')
-  } else if (to.meta.guestOnly && authStore.isAuthenticated) {
-    // Redirect to respective dashboard based on role
+    return '/login'
+  }
+
+  if (to.meta.guestOnly && authStore.isAuthenticated) {
     const role = authStore.role
-    if (role === 'admin') next('/admin')
-    else if (role === 'guru') next('/guru')
-    else if (role === 'siswa') next('/siswa')
-    else next('/login')
-  } else if (to.meta.role && authStore.role !== to.meta.role) {
-    next('/') // Unauthorized
-  } else {
-    next()
+    if (role === 'admin') return '/admin'
+    if (role === 'guru') return '/guru'
+    if (role === 'siswa') return '/siswa'
+    return '/login'
+  }
+
+  if (to.meta.role && authStore.role !== to.meta.role) {
+    return '/'
   }
 })
 

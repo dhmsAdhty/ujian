@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Poppins:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -6,32 +8,55 @@
   html {
     @apply scroll-smooth;
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
 
 @layer components {
-  /* Clean surfaces — subtle depth, no heavy glass */
+  /* Kartu seperti MuiPaper Venus: putih / info.light, radius besar, tanpa bayangan default */
   .glass-card {
-    @apply rounded-xl border border-zinc-200/90 bg-white shadow-sm;
+    @apply rounded-venus border border-venus-100 bg-white shadow-none backdrop-blur-sm;
   }
 
   .glass-panel {
-    @apply border-zinc-200/90 bg-white/90 backdrop-blur-md;
+    @apply border-venus-100 bg-white/90 backdrop-blur-xl;
   }
 
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-primary-400;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-500 to-primary-300;
   }
 
   .form-input {
-    @apply w-full rounded-lg border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 shadow-sm outline-none transition-colors
-      placeholder:text-zinc-400
-      focus:border-primary-500 focus:ring-2 focus:ring-primary-500/15;
+    @apply w-full rounded-venus border border-venus-100 bg-venus-50 px-3.5 py-2.5 text-sm text-venus-900 shadow-none outline-none transition-[border-color,box-shadow,background-color] duration-250 ease-ios
+      placeholder:text-venus-400
+      focus:border-primary-300 focus:bg-white focus:shadow-venus-sm focus:ring-2 focus:ring-primary-500/20;
+  }
+
+  .pressable {
+    @apply transition-[transform,opacity,background-color] duration-200 ease-ios active:scale-[0.98];
+  }
+
+  .pressable-soft {
+    @apply transition-[transform,background-color] duration-200 ease-ios active:scale-[0.99];
   }
 }
 
+/* Scrollbar mengikuti Venus (thumb ≈ info.dark #E9EDF7 → kami pakai venus-100) */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -39,26 +64,15 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply rounded-full bg-zinc-200;
+  @apply rounded-sm bg-venus-100;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-zinc-300;
+@media (hover: hover) and (pointer: fine) {
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-venus-300;
+  }
 }
 
 body {
-  @apply min-h-screen overflow-x-hidden bg-zinc-50 font-sans text-zinc-900 antialiased;
-}
-
-/* Very subtle grid — optional depth without noise */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  background-image:
-    linear-gradient(to right, rgb(24 24 27 / 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(24 24 27 / 0.03) 1px, transparent 1px);
-  background-size: 48px 48px;
-  pointer-events: none;
+  @apply min-h-screen overflow-x-hidden bg-venus-50 font-sans text-venus-900 antialiased;
 }

@@ -7,7 +7,7 @@ defineProps({
     default: 'text'
   },
   placeholder: String,
-  icon: Object, // Lucide icon component
+  icon: [Object, Function], // Lucide icon component
   error: String
 })
 
@@ -16,9 +16,9 @@ defineEmits(['update:modelValue'])
 
 <template>
   <div class="space-y-2 w-full">
-    <label v-if="label" class="ml-0.5 block text-sm font-medium text-zinc-700">{{ label }}</label>
+    <label v-if="label" class="ml-0.5 block text-sm font-medium text-venus-700">{{ label }}</label>
     <div class="relative group">
-      <div v-if="icon" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 transition-colors group-focus-within:text-primary-600">
+      <div v-if="icon" class="absolute left-3.5 top-1/2 -tranvenus-y-1/2 text-venus-400 transition-colors group-focus-within:text-primary-600">
         <component :is="icon" :size="20" />
       </div>
       <input 

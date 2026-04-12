@@ -15,14 +15,14 @@ defineProps({
 
 <template>
   <GlassCard padding="p-5" class="relative overflow-hidden">
-    <div class="absolute -right-6 -bottom-6 text-zinc-100 opacity-90">
+    <div class="absolute -right-6 -bottom-6 text-venus-100 opacity-90">
       <component :is="icon" :size="88" stroke-width="1.25" />
     </div>
 
     <div class="relative flex items-start justify-between gap-3">
       <div class="min-w-0 space-y-1">
-        <p class="text-xs font-medium text-zinc-500">{{ title }}</p>
-        <p class="text-2xl font-semibold tracking-tight text-zinc-900">{{ value }}</p>
+        <p class="text-xs font-medium text-venus-500">{{ title }}</p>
+        <p class="text-2xl font-semibold tracking-tight text-venus-900">{{ value }}</p>
         <p v-if="trend" class="flex items-center gap-1 text-xs font-medium text-emerald-600">
           <span aria-hidden="true">↑</span>
           {{ trend }} vs bulan lalu

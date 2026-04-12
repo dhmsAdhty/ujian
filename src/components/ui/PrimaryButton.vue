@@ -17,16 +17,16 @@ defineProps({
   <button
     :type="type"
     :disabled="loading || disabled"
-    class="relative inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+    class="pressable relative inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold shadow-ios-sm transition-[transform,opacity,background-color,box-shadow] duration-200 ease-ios disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
     :class="[
       variant === 'primary'
-        ? 'bg-primary-600 text-white shadow-sm hover:bg-primary-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600'
+        ? 'bg-primary-600 text-white active:bg-primary-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600'
         : '',
       variant === 'secondary'
-        ? 'border border-zinc-200 bg-white text-zinc-800 shadow-sm hover:bg-zinc-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400'
+        ? 'border border-venus-200/90 bg-white text-venus-800 active:bg-venus-100/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-venus-400'
         : '',
       variant === 'danger'
-        ? 'bg-red-600 text-white shadow-sm hover:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600'
+        ? 'bg-red-600 text-white active:bg-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600'
         : ''
     ]"
   >

@@ -14,7 +14,7 @@ import {
   HelpCircle,
   FileText
 } from 'lucide-vue-next'
-import { GlassCard, PrimaryButton, FormInput } from '@/components/ui'
+import { GlassCard, PrimaryButton, FormInput, AppSelect } from '@/components/ui'
 import Swal from 'sweetalert2'
 
 const router = useRouter()
@@ -161,17 +161,18 @@ const handleSave = async () => {
     <!-- Breadcrumb & Actions -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div class="flex items-center gap-4">
-        <button 
+        <button
+          type="button"
+          class="pressable-soft rounded-xl border border-venus-200/90 bg-white p-2.5 shadow-ios-sm transition-[background-color,transform] duration-200 ease-ios active:bg-venus-100"
           @click="router.push('/guru/soal')"
-          class="p-2.5 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all shadow-sm"
         >
           <ChevronLeft :size="20" />
         </button>
         <div>
-          <h1 class="text-3xl font-bold text-slate-900 tracking-tight">
+          <h1 class="text-3xl font-bold text-venus-900 tracking-tight">
             {{ isEdit ? 'Edit Soal' : 'Buat Soal Baru' }}
           </h1>
-          <p class="text-slate-500 mt-1">Lengkapi detail instruksi dan kunci jawaban pertanyaan.</p>
+          <p class="text-venus-500 mt-1">Lengkapi detail instruksi dan kunci jawaban pertanyaan.</p>
         </div>
       </div>
       <PrimaryButton @click="handleSave" :loading="saving" class="min-w-[140px] shadow-primary-500/30">
@@ -185,11 +186,11 @@ const handleSave = async () => {
       <div class="lg:col-span-2 space-y-6">
         <GlassCard padding="p-8">
           <div class="space-y-6">
-            <div class="flex items-center gap-2 pb-4 border-b border-slate-100">
+            <div class="flex items-center gap-2 pb-4 border-b border-venus-100">
               <div class="w-8 h-8 rounded-lg bg-primary-100 text-primary-600 flex items-center justify-center">
                 <FileText :size="18" />
               </div>
-              <h3 class="font-bold text-slate-800 uppercase tracking-widest text-sm">Konten Pertanyaan</h3>
+              <h3 class="font-bold text-venus-800 uppercase tracking-widest text-sm">Konten Pertanyaan</h3>
             </div>
 
             <FormInput 
@@ -199,7 +200,7 @@ const handleSave = async () => {
             />
 
             <div class="space-y-2">
-              <label class="text-sm font-semibold text-slate-700 ml-1">Deskripsi Lengkap / Narasi Soal</label>
+              <label class="text-sm font-semibold text-venus-700 ml-1">Deskripsi Lengkap / Narasi Soal</label>
               <textarea 
                 v-model="form.konten"
                 rows="6"
@@ -210,12 +211,14 @@ const handleSave = async () => {
 
             <!-- Media Preview/Upload -->
             <div class="space-y-3">
-              <label class="text-sm font-semibold text-slate-700 ml-1">Media Gambar (Opsional)</label>
-              <div v-if="form.media_url" class="relative group w-full h-48 rounded-2xl overflow-hidden border border-slate-200">
-                <img :src="form.media_url" class="w-full h-full object-contain bg-slate-50" />
-                <button 
+              <label class="text-sm font-semibold text-venus-700 ml-1">Media Gambar (Opsional)</label>
+              <div v-if="form.media_url" class="relative h-48 w-full overflow-hidden rounded-2xl border border-venus-200/90">
+                <img :src="form.media_url" class="h-full w-full bg-venus-50 object-contain" />
+                <button
+                  type="button"
+                  class="pressable-soft absolute right-2 top-2 rounded-xl bg-red-500 p-2 text-white shadow-ios-md transition-[transform,opacity] duration-200 ease-ios"
                   @click="form.media_url = ''"
-                  class="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-xl shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="Hapus gambar"
                 >
                   <X :size="16" />
                 </button>
@@ -227,8 +230,10 @@ const handleSave = async () => {
                   accept="image/*"
                   class="absolute inset-0 opacity-0 cursor-pointer z-10"
                 />
-                <div class="p-8 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center text-slate-400 hover:border-primary-400 hover:text-primary-500 transition-all group">
-                  <ImageIcon :size="32" class="mb-2 group-hover:scale-110 transition-transform" />
+                <div
+                  class="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-venus-200/90 p-8 text-venus-400 transition-[border-color,background-color] duration-250 ease-ios active:border-primary-400/70 active:bg-primary-50/20"
+                >
+                  <ImageIcon :size="32" class="mb-2" />
                   <span class="text-sm font-bold">Tekan untuk unggah gambar</span>
                   <span class="text-[10px] uppercase font-black tracking-widest mt-1">Format: JPG, PNG, WEBP (Maks 2MB)</span>
                 </div>
@@ -239,12 +244,12 @@ const handleSave = async () => {
 
         <!-- Dynamic Answer Section -->
         <GlassCard padding="p-8">
-          <div class="flex items-center justify-between pb-6 border-b border-slate-100 mb-6">
+          <div class="flex items-center justify-between pb-6 border-b border-venus-100 mb-6">
             <div class="flex items-center gap-2">
-              <div class="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center">
+              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-100 text-amber-800">
                 <CheckCircle2 :size="18" />
               </div>
-              <h3 class="font-bold text-slate-800 uppercase tracking-widest text-sm">
+              <h3 class="font-bold text-venus-800 uppercase tracking-widest text-sm">
                 {{ form.tipe_soal === 'pilihan_ganda' ? 'Opsi Jawaban' : 'Kunci Pedoman Essay' }}
               </h3>
             </div>
@@ -269,7 +274,7 @@ const handleSave = async () => {
               <button 
                 @click="setCorrect(index)"
                 class="w-10 h-10 rounded-xl flex items-center justify-center font-bold transition-all border shrink-0"
-                :class="opt.is_correct ? 'bg-emerald-500 text-white border-emerald-500 shadow-md ring-4 ring-emerald-500/10' : 'bg-white text-slate-400 border-slate-200 hover:border-primary-300'"
+                :class="opt.is_correct ? 'border-emerald-500 bg-emerald-500 text-white shadow-ios-sm ring-4 ring-emerald-500/10' : 'border-venus-200 bg-white text-venus-400 focus-visible:border-primary-400 focus-visible:outline-none'"
               >
                 {{ opt.label }}
               </button>
@@ -280,10 +285,11 @@ const handleSave = async () => {
                 class="flex-1"
               />
 
-              <button 
-                @click="removeOption(index)"
-                class="p-2.5 text-slate-300 hover:text-red-500 transition-colors"
+              <button
+                type="button"
+                class="pressable-soft rounded-lg p-2.5 text-venus-300 transition-[color,transform] duration-200 ease-ios active:text-red-500"
                 title="Hapus Opsi"
+                @click="removeOption(index)"
               >
                 <Trash2 :size="18" />
               </button>
@@ -311,23 +317,23 @@ const handleSave = async () => {
       <!-- Right Column: Settings -->
       <div class="space-y-6">
         <GlassCard padding="p-6">
-          <h3 class="font-bold text-slate-800 uppercase tracking-widest text-xs mb-6 pb-2 border-b border-slate-100">Atribut Soal</h3>
+          <h3 class="font-bold text-venus-800 uppercase tracking-widest text-xs mb-6 pb-2 border-b border-venus-100">Atribut Soal</h3>
           
           <div class="space-y-5">
             <div class="space-y-1.5">
-              <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Tipe Pertanyaan</label>
+              <label class="text-[11px] font-black text-venus-400 uppercase tracking-widest ml-1">Tipe Pertanyaan</label>
               <div class="grid grid-cols-2 gap-2">
                 <button 
                   @click="form.tipe_soal = 'pilihan_ganda'"
                   class="py-2.5 rounded-xl text-xs font-bold border transition-all"
-                  :class="form.tipe_soal === 'pilihan_ganda' ? 'bg-primary-500 text-white border-primary-500 shadow-md' : 'bg-white text-slate-500 border-slate-200 shadow-sm'"
+                  :class="form.tipe_soal === 'pilihan_ganda' ? 'border-primary-600 bg-primary-600 text-white shadow-ios-md' : 'border-venus-200 bg-white text-venus-500 shadow-ios-sm'"
                 >
                   Pilihan Ganda
                 </button>
                 <button 
                   @click="form.tipe_soal = 'essay'"
                   class="py-2.5 rounded-xl text-xs font-bold border transition-all"
-                  :class="form.tipe_soal === 'essay' ? 'bg-primary-500 text-white border-primary-500 shadow-md' : 'bg-white text-slate-500 border-slate-200 shadow-sm'"
+                  :class="form.tipe_soal === 'essay' ? 'border-primary-600 bg-primary-600 text-white shadow-ios-md' : 'border-venus-200 bg-white text-venus-500 shadow-ios-sm'"
                 >
                   Essay
                 </button>
@@ -335,38 +341,38 @@ const handleSave = async () => {
             </div>
 
             <div class="space-y-1.5">
-              <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Mata Pelajaran *</label>
-              <select v-model="form.mapel_id" class="form-input text-sm">
-                <option value="" disabled>Pilih Mapel</option>
+              <label class="text-[11px] font-black text-venus-400 uppercase tracking-widest ml-1">Mata Pelajaran *</label>
+              <AppSelect v-model="form.mapel_id" placeholder="Pilih Mapel">
                 <option v-for="m in mapels" :key="m.id" :value="m.id">{{ m.nama }}</option>
-              </select>
+              </AppSelect>
             </div>
 
             <div class="space-y-1.5">
-              <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Target Kelas *</label>
-              <select v-model="form.kelas_id" class="form-input text-sm">
-                <option value="" disabled>Pilih Kelas</option>
+              <label class="text-[11px] font-black text-venus-400 uppercase tracking-widest ml-1">Target Kelas *</label>
+              <AppSelect v-model="form.kelas_id" placeholder="Pilih Kelas">
                 <option v-for="k in kelasList" :key="k.id" :value="k.id">{{ k.nama }}</option>
-              </select>
+              </AppSelect>
             </div>
 
             <div class="space-y-1.5">
-              <label class="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Bobot Nilai</label>
+              <label class="text-[11px] font-black text-venus-400 uppercase tracking-widest ml-1">Bobot Nilai</label>
               <input 
                 v-model.number="form.bobot"
                 type="number"
                 min="1"
                 class="form-input text-sm font-bold"
               />
-              <p class="text-[10px] text-slate-400 ml-1">Gunakan bobot lebih besar untuk soal sulit.</p>
+              <p class="text-[10px] text-venus-400 ml-1">Gunakan bobot lebih besar untuk soal sulit.</p>
             </div>
           </div>
         </GlassCard>
 
         <!-- Info Card -->
-        <div class="bg-gradient-to-br from-primary-600 to-orange-500 rounded-3xl p-6 text-white shadow-xl shadow-primary-500/20 relative overflow-hidden group">
-          <div class="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
-            <HelpCircle :size="120" />
+        <div
+          class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary-700 to-primary-500 p-6 text-white shadow-ios-lg shadow-primary-500/20"
+        >
+          <div class="pointer-events-none absolute -bottom-4 -right-4 opacity-[0.12]">
+            <HelpCircle :size="120" stroke-width="1.25" />
           </div>
           <h4 class="font-bold mb-2">Tips Pendidik</h4>
           <ul class="text-xs space-y-2 opacity-90 leading-relaxed font-medium">

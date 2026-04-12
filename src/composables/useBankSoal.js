@@ -55,7 +55,7 @@ export function useBankSoal() {
       text: "Soal akan dipindahkan ke tempat sampah dan tidak akan muncul di ujian.",
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#f97316',
+      confirmButtonColor: '#4318ff',
       cancelButtonColor: '#cbd5e1',
       confirmButtonText: 'Ya, Hapus!',
       cancelButtonText: 'Batal'

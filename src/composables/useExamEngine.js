@@ -86,7 +86,7 @@ export function useExamEngine(examId) {
       icon: 'success',
       title: reason,
       text: 'Jawaban Anda telah berhasil terikirim ke server.',
-      confirmButtonColor: '#f97316'
+      confirmButtonColor: '#4318ff'
     })
   }
 
@@ -102,14 +102,14 @@ export function useExamEngine(examId) {
         icon: 'error',
         title: 'Pelanggaran Terdeteksi',
         text: 'Anda telah berpindah tab/layar lebih dari 1 kali. Ujian otomatis dihentikan.',
-        confirmButtonColor: '#ef4444'
+        confirmButtonColor: '#e31a1a'
       })
     } else {
       Swal.fire({
         icon: 'warning',
         title: 'Peringatan!',
         text: 'Jangan berpindah tab atau aplikasi saat ujian sedang berlangsung! Sekali lagi, ujian akan dihentikan.',
-        confirmButtonColor: '#f97316'
+        confirmButtonColor: '#4318ff'
       })
     }
   }

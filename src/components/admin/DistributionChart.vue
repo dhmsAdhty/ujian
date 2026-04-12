@@ -32,10 +32,10 @@ const option = ref({
     orient: 'horizontal',
     bottom: 'bottom',
     textStyle: {
-      color: '#71717a'
+      color: '#707eae'
     }
   },
-  color: ['#f97316', '#fb923c', '#fdba74', '#fed7aa', '#ffedd5'],
+  color: ['#4318ff', '#868cff', '#6b5eff', '#3814d6', '#d9d2ff'],
   series: [
     {
       name: 'Rasio Soal',
@@ -72,7 +72,7 @@ const option = ref({
 
 <template>
   <GlassCard class="flex h-[400px] flex-col">
-    <h3 class="mb-5 text-lg font-semibold tracking-tight text-zinc-900">Rasio PG vs Essay</h3>
+    <h3 class="mb-5 text-lg font-semibold tracking-tight text-venus-900">Rasio PG vs Essay</h3>
     <div class="flex-1 w-full h-full min-h-[250px]">
       <v-chart class="chart w-full h-full" :option="option" autoresize />
     </div>
