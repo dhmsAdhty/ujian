@@ -13,7 +13,7 @@ dist
 dist-ssr
 coverage
 *.local
-.venus/
+venus/
 
 # Editor directories and files
 .vscode/*
