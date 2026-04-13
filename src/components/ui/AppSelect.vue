@@ -13,6 +13,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 
 const open = ref(false)
+const mounted = ref(true) // track lifecycle to disable Teleport before unmount
 const triggerRef = ref(null)
 const dropdownStyle = ref({})
 
@@ -57,7 +58,13 @@ const handleOutside = (e) => {
 }
 
 onMounted(() => document.addEventListener('mousedown', handleOutside))
-onBeforeUnmount(() => document.removeEventListener('mousedown', handleOutside))
+
+onBeforeUnmount(() => {
+  // Close dropdown BEFORE component is destroyed to prevent Teleport orphan crash
+  open.value = false
+  mounted.value = false
+  document.removeEventListener('mousedown', handleOutside)
+})
 </script>
 
 <template>
@@ -100,8 +107,8 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', handleOutside))
       </svg>
     </button>
 
-    <!-- Dropdown teleported to body to escape overflow:hidden parents -->
-    <Teleport to="body">
+    <!-- Teleport disabled before unmount to prevent orphan crash -->
+    <Teleport v-if="mounted" to="body">
       <Transition
         enter-active-class="transition duration-150 ease-out"
         enter-from-class="opacity-0 translate-y-1 scale-[0.98]"
@@ -115,7 +122,6 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', handleOutside))
           :style="dropdownStyle"
           class="overflow-hidden rounded-xl border border-venus-100 bg-white shadow-venus"
         >
-          <!-- Reset / placeholder -->
           <button
             v-if="placeholder"
             type="button"
@@ -126,7 +132,6 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', handleOutside))
           </button>
           <div v-if="placeholder" class="mx-3 border-t border-venus-50" />
 
-          <!-- Options -->
           <button
             v-for="opt in options"
             :key="typeof opt === 'object' ? opt.value : opt"

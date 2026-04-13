@@ -4,7 +4,7 @@ import { GlassCard } from '@/components/ui'
 defineProps({
   title: String,
   value: [String, Number],
-  icon: Object,
+  icon: [Object, Function],
   trend: String,
   color: {
     type: String,

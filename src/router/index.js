@@ -11,6 +11,11 @@ const router = createRouter({
       meta: { guestOnly: true }
     },
     {
+      path: '/reset-password',
+      name: 'reset-password',
+      component: () => import('@/views/auth/ResetPasswordView.vue'),
+    },
+    {
       path: '/',
       redirect: '/login'
     },
@@ -21,8 +26,10 @@ const router = createRouter({
       children: [
         { path: '', name: 'admin-dashboard', component: () => import('@/views/admin/DashboardView.vue') },
         { path: 'users', name: 'admin-users', component: () => import('@/views/admin/UserManagement.vue') },
-        { path: 'mapel', name: 'admin-mapel', component: () => import('@/views/admin/PlaceholderView.vue') },
-        { path: 'soal', name: 'admin-soal', component: () => import('@/views/admin/PlaceholderView.vue') },
+        { path: 'mapel', name: 'admin-mapel', component: () => import('@/views/admin/MapelView.vue') },
+        { path: 'penugasan', name: 'admin-penugasan', component: () => import('@/views/admin/PenugasanGuru.vue') },
+        { path: 'soal', name: 'admin-soal', component: () => import('@/views/admin/StatistikSoal.vue') },
+        { path: 'kelas', name: 'admin-kelas', component: () => import('@/views/admin/KelasView.vue') },
         { path: 'laporan', name: 'admin-laporan', component: () => import('@/views/admin/PlaceholderView.vue') },
         { path: 'settings', name: 'admin-settings', component: () => import('@/views/admin/PlaceholderView.vue') },
       ]
@@ -36,7 +43,8 @@ const router = createRouter({
         { path: 'soal', name: 'guru-soal', component: () => import('@/views/guru/BankSoal.vue') },
         { path: 'soal/tambah', name: 'guru-soal-tambah', component: () => import('@/views/guru/SoalForm.vue') },
         { path: 'soal/edit/:id', name: 'guru-soal-edit', component: () => import('@/views/guru/SoalForm.vue') },
-        { path: 'nilai', name: 'guru-nilai', component: () => import('@/views/guru/RekapNilai.vue') }
+        { path: 'nilai', name: 'guru-nilai', component: () => import('@/views/guru/RekapNilai.vue') },
+        { path: 'jadwal', name: 'guru-jadwal', component: () => import('@/views/guru/JadwalUjian.vue') },
       ]
     },
     {

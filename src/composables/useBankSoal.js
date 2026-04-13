@@ -27,7 +27,7 @@ export function useBankSoal() {
 
     let query = supabase
       .from('bank_soal')
-      .select('*, mapels(nama), kelas(nama)', { count: 'exact' })
+      .select('*, mapel(nama), kelas(nama)', { count: 'exact' })
       .eq('guru_id', authStore.user.id)
       .is('deleted_at', null) // Soft delete check
       .range(from, to)

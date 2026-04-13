@@ -9,7 +9,7 @@ export function useActivityFeed() {
     // Combine recent profiles and recent bank_soal updates
     const [profiles, soal] = await Promise.all([
       supabase.from('profiles').select('id, full_name, last_login').order('last_login', { ascending: false }).limit(5),
-      supabase.from('bank_soal').select('id, judul, created_at, gurus(full_name)').order('created_at', { ascending: false }).limit(5)
+      supabase.from('bank_soal').select('id, judul, created_at, profiles(full_name)').order('created_at', { ascending: false }).limit(5)
     ])
 
     const combined = [
@@ -24,7 +24,7 @@ export function useActivityFeed() {
         id: `soal-${s.id}`,
         type: 'soal',
         title: 'Soal Baru',
-        description: `${s.gurus?.full_name || 'Seorang Guru'} membuat soal: ${s.judul}`,
+        description: `${s.profiles?.full_name || 'Seorang Guru'} membuat soal: ${s.judul}`,
         time: s.created_at
       }))
     ]

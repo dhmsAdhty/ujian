@@ -54,10 +54,10 @@ const isActive = (path) => route.path === path
 </script>
 
 <template>
-  <div class="flex min-h-screen bg-venus-50">
+  <div class="flex h-screen overflow-hidden bg-venus-50">
     <!-- Sidebar -->
     <aside
-      class="fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col border-r border-venus-100 bg-white shadow-venus backdrop-blur-xl transition-transform duration-300 ease-ios lg:static lg:translate-x-0"
+      class="fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col border-r border-venus-100 bg-white shadow-venus transition-transform duration-300 ease-ios lg:static lg:translate-x-0"
       :class="isSidebarOpen ? 'translate-x-0' : '-translate-x-full'"
     >
       <div class="flex h-full flex-col">
@@ -139,7 +139,7 @@ const isActive = (path) => route.path === path
     </aside>
 
     <!-- Main Content -->
-    <div class="flex min-w-0 flex-1 flex-col">
+    <div class="flex min-w-0 flex-1 flex-col overflow-hidden">
       <!-- Topbar -->
       <header
         class="sticky top-0 z-30 flex h-[60px] shrink-0 items-center justify-between gap-4 border-b border-venus-100 bg-white/90 px-4 backdrop-blur-xl sm:px-6"

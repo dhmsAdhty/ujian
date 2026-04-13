@@ -11,8 +11,8 @@ defineProps({
     default: 'Belum ada informasi yang tersedia untuk ditampilkan saat ini.'
   },
   icon: {
-    type: Object,
-    default: AlertCircle
+    type: [Object, Function],
+    default: () => AlertCircle
   }
 })
 </script>

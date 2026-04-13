@@ -1,20 +1,21 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { supabase } from '@/services/supabase'
-import { X, User, Mail, Lock, Shield } from 'lucide-vue-next'
+import { X, User, KeyRound } from 'lucide-vue-next'
 import { FormInput, AppSelect, PrimaryButton } from '@/components/ui'
 import Swal from 'sweetalert2'
 
 const props = defineProps({
   show: Boolean,
-  editUser: { type: Object, default: null }, // null = tambah mode
+  editUser: { type: Object, default: null },
 })
 
 const emit = defineEmits(['close', 'saved'])
 
 const saving = ref(false)
-const form = ref({ full_name: '', email: '', password: '', role: '' })
+const form = ref({ full_name: '', email: '', password: '', role: '', kelas_id: '' })
 const errors = ref({})
+const kelasList = ref([])
 
 const roleOptions = [
   { value: 'admin', label: 'Administrator' },
@@ -22,19 +23,25 @@ const roleOptions = [
   { value: 'siswa', label: 'Siswa' },
 ]
 
-// Populate form when editing
+onMounted(async () => {
+  const { data } = await supabase.from('kelas').select('id, nama').order('nama')
+  kelasList.value = data || []
+})
+
 watch(
   () => props.editUser,
   (u) => {
     if (u) {
-      form.value = { full_name: u.full_name || '', email: u.email || '', password: '', role: u.role || '' }
+      form.value = { full_name: u.full_name || '', email: u.email || '', password: '', role: u.role || '', kelas_id: u.kelas_id || '' }
     } else {
-      form.value = { full_name: '', email: '', password: '', role: '' }
+      form.value = { full_name: '', email: '', password: '', role: '', kelas_id: '' }
     }
     errors.value = {}
   },
   { immediate: true },
 )
+
+const resettingPassword = ref(false)
 
 const validate = () => {
   const e = {}
@@ -43,32 +50,70 @@ const validate = () => {
   if (!props.editUser && !form.value.password) e.password = 'Password wajib diisi untuk user baru'
   if (form.value.password && form.value.password.length < 6) e.password = 'Password minimal 6 karakter'
   if (!form.value.role) e.role = 'Role wajib dipilih'
+  if (form.value.role === 'siswa' && !form.value.kelas_id) e.kelas_id = 'Kelas wajib dipilih untuk siswa'
   errors.value = e
   return Object.keys(e).length === 0
 }
 
+const handleResetPassword = async () => {
+  if (!props.editUser?.email) return
+  const result = await Swal.fire({
+    title: 'Reset Password?',
+    html: `Kirim email reset password ke<br><b>${props.editUser.email}</b>`,
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#4318ff',
+    confirmButtonText: 'Ya, Kirim',
+    cancelButtonText: 'Batal',
+  })
+  if (!result.isConfirmed) return
+
+  resettingPassword.value = true
+  const { error } = await supabase.auth.resetPasswordForEmail(props.editUser.email, {
+    redirectTo: `${window.location.origin}/reset-password`,
+  })
+  resettingPassword.value = false
+
+  if (error) {
+    Swal.fire('Gagal', error.message, 'error')
+  } else {
+    Swal.fire({
+      icon: 'success',
+      title: 'Email Terkirim',
+      text: `Link reset password telah dikirim ke ${props.editUser.email}`,
+      confirmButtonColor: '#4318ff',
+    })
+  }
+}
 const handleSave = async () => {
   if (!validate()) return
   saving.value = true
 
   try {
     if (props.editUser) {
-      // Update via RPC agar auth.users metadata ikut tersync
       const { error } = await supabase.rpc('update_user_profile', {
         target_user_id: props.editUser.id,
         new_full_name: form.value.full_name,
         new_role: form.value.role,
       })
       if (error) {
-        // Fallback: update profiles saja jika RPC belum ada
         const { error: profileError } = await supabase
           .from('profiles')
-          .update({ full_name: form.value.full_name, role: form.value.role })
+          .update({
+            full_name: form.value.full_name,
+            role: form.value.role,
+            kelas_id: form.value.role === 'siswa' ? form.value.kelas_id : null
+          })
           .eq('id', props.editUser.id)
         if (profileError) throw profileError
+      } else {
+        // RPC berhasil, update kelas_id terpisah
+        await supabase
+          .from('profiles')
+          .update({ kelas_id: form.value.role === 'siswa' ? form.value.kelas_id : null })
+          .eq('id', props.editUser.id)
       }
     } else {
-      // Tambah: signUp dengan metadata — trigger DB akan buat row profiles
       const { data, error } = await supabase.auth.signUp({
         email: form.value.email,
         password: form.value.password,
@@ -80,8 +125,13 @@ const handleSave = async () => {
         },
       })
       if (error) throw error
-      // Trigger handle_new_user di DB akan otomatis insert ke profiles.
-      // Tidak perlu upsert manual dari client (akan kena RLS 403).
+      // Update kelas_id setelah trigger buat profiles
+      if (form.value.role === 'siswa' && data.user) {
+        await supabase
+          .from('profiles')
+          .update({ kelas_id: form.value.kelas_id })
+          .eq('id', data.user.id)
+      }
     }
 
     emit('saved')
@@ -192,20 +242,51 @@ const handleSave = async () => {
                 :options="roleOptions"
                 :error="errors.role"
               />
+
+              <!-- Kelas — hanya muncul jika role siswa -->
+              <Transition
+                enter-active-class="transition duration-200 ease-out"
+                enter-from-class="opacity-0 -translate-y-1"
+                enter-to-class="opacity-100 translate-y-0"
+              >
+                <AppSelect
+                  v-if="form.role === 'siswa'"
+                  v-model="form.kelas_id"
+                  label="Kelas"
+                  placeholder="Pilih kelas siswa..."
+                  :options="kelasList.map(k => ({ value: k.id, label: k.nama }))"
+                  :error="errors.kelas_id"
+                />
+              </Transition>
             </div>
 
             <!-- Footer -->
-            <div class="flex items-center justify-end gap-3 border-t border-venus-100 px-6 py-4">
+            <div class="flex items-center justify-between border-t border-venus-100 px-6 py-4">
+              <!-- Reset password button (edit mode only) -->
               <button
+                v-if="editUser"
                 type="button"
-                class="rounded-xl px-5 py-2.5 text-sm font-semibold text-venus-500 transition-colors hover:bg-venus-50"
-                @click="emit('close')"
+                class="pressable-soft flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold text-amber-600 transition-colors hover:bg-amber-50"
+                :disabled="resettingPassword"
+                @click="handleResetPassword"
               >
-                Batal
+                <KeyRound :size="15" />
+                {{ resettingPassword ? 'Mengirim...' : 'Reset Password' }}
               </button>
-              <PrimaryButton :loading="saving" @click="handleSave">
-                {{ editUser ? 'Simpan Perubahan' : 'Buat Akun' }}
-              </PrimaryButton>
+              <div v-else />
+
+              <div class="flex items-center gap-3">
+                <button
+                  type="button"
+                  class="rounded-xl px-5 py-2.5 text-sm font-semibold text-venus-500 transition-colors hover:bg-venus-50"
+                  @click="emit('close')"
+                >
+                  Batal
+                </button>
+                <PrimaryButton :loading="saving" @click="handleSave">
+                  {{ editUser ? 'Simpan Perubahan' : 'Buat Akun' }}
+                </PrimaryButton>
+              </div>
             </div>
           </div>
         </Transition>
