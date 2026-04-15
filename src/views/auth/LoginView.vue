@@ -27,7 +27,7 @@ const handleLogin = async () => {
       confirmButtonColor: '#4318ff'
     })
   } else {
-    Swal.fire({
+    await Swal.fire({
       icon: 'success',
       title: 'Selamat datang',
       text: 'Anda berhasil masuk.',
@@ -39,6 +39,7 @@ const handleLogin = async () => {
     if (role === 'admin') router.push('/admin')
     else if (role === 'guru') router.push('/guru')
     else if (role === 'siswa') router.push('/siswa')
+    else router.push('/')
   }
   loading.value = false
 }

@@ -1,5 +1,5 @@
 <script setup>
-import { BarChart3, Users, BookOpen, FileStack, Settings, LayoutDashboard, UserCheck, School } from 'lucide-vue-next'
+import { BarChart3, Users, BookOpen, FileStack, Settings, LayoutDashboard, UserCheck, School, Activity, Trash2 } from 'lucide-vue-next'
 import AppLayout from '@/components/layout/AppLayout.vue'
 
 const menuItems = [
@@ -10,6 +10,8 @@ const menuItems = [
   { name: 'Penugasan Guru', icon: UserCheck, path: '/admin/penugasan' },
   { name: 'Statistik Soal', icon: FileStack, path: '/admin/soal' },
   { name: 'Laporan Nilai', icon: BarChart3, path: '/admin/laporan' },
+  { name: 'Aktivitas Pengguna', icon: Activity, path: '/admin/aktivitas' },
+  { name: 'Sampah Soal', icon: Trash2, path: '/admin/trash' },
   { name: 'Pengaturan', icon: Settings, path: '/admin/settings' },
 ]
 </script>

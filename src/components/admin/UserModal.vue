@@ -91,28 +91,16 @@ const handleSave = async () => {
 
   try {
     if (props.editUser) {
-      const { error } = await supabase.rpc('update_user_profile', {
-        target_user_id: props.editUser.id,
-        new_full_name: form.value.full_name,
-        new_role: form.value.role,
-      })
-      if (error) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({
-            full_name: form.value.full_name,
-            role: form.value.role,
-            kelas_id: form.value.role === 'siswa' ? form.value.kelas_id : null
-          })
-          .eq('id', props.editUser.id)
-        if (profileError) throw profileError
-      } else {
-        // RPC berhasil, update kelas_id terpisah
-        await supabase
-          .from('profiles')
-          .update({ kelas_id: form.value.role === 'siswa' ? form.value.kelas_id : null })
-          .eq('id', props.editUser.id)
-      }
+      // Selalu update langsung ke profiles dengan semua field sekaligus
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          full_name: form.value.full_name,
+          role: form.value.role,
+          kelas_id: form.value.role === 'siswa' ? form.value.kelas_id : null
+        })
+        .eq('id', props.editUser.id)
+      if (profileError) throw profileError
     } else {
       const { data, error } = await supabase.auth.signUp({
         email: form.value.email,

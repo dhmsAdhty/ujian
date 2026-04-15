@@ -208,17 +208,6 @@ onMounted(async () => {
             </button>
           </div>
         </GlassCard>
-
-        <!-- Tip Card -->
-        <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary-700 to-primary-500 p-5 text-white shadow-ios-lg shadow-primary-500/20">
-          <div class="pointer-events-none absolute -bottom-4 -right-4 opacity-10">
-            <FileStack :size="100" stroke-width="1.25" />
-          </div>
-          <p class="mb-1 text-xs font-bold uppercase tracking-widest opacity-70">Tips</p>
-          <p class="text-sm font-medium leading-relaxed opacity-90">
-            Gunakan fitur Import Massal di Bank Soal untuk mengunggah banyak soal sekaligus via Excel.
-          </p>
-        </div>
       </div>
     </div>
   </div>

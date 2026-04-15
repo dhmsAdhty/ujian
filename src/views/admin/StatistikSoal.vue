@@ -75,22 +75,32 @@ onMounted(async () => {
     .sort((a, b) => b.total - a.total)
     .slice(0, 8)
 
-  // Per bulan (12 bulan terakhir)
-  const monthMap = {}
+  // Per bulan: tampilkan tren per HARI dalam bulan ini (bukan 12 bulan)
+  const dayMap = {}
   const now = new Date()
-  for (let i = 11; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-    monthMap[key] = 0
+  const year = now.getFullYear()
+  const month = now.getMonth()
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+
+  // Inisialisasi setiap hari di bulan ini dengan 0
+  for (let i = 1; i <= daysInMonth; i++) {
+    const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`
+    dayMap[key] = 0
   }
+
   soal.forEach((s) => {
-    const key = s.created_at?.slice(0, 7)
-    if (key && monthMap[key] !== undefined) monthMap[key]++
+    // Ambil YYYY-MM-DD
+    const key = s.created_at?.slice(0, 10)
+    if (key && dayMap[key] !== undefined) dayMap[key]++
   })
-  perMonth.value = Object.entries(monthMap).map(([k, v]) => ({
-    month: new Date(k + '-01').toLocaleDateString('id-ID', { month: 'short', year: '2-digit' }),
-    count: v,
-  }))
+
+  perMonth.value = Object.entries(dayMap).map(([k, v]) => {
+    const d = new Date(k)
+    return {
+      month: `${String(d.getDate()).padStart(2, '0')} ${d.toLocaleDateString('id-ID', { month: 'short' })}`,
+      count: v,
+    }
+  })
 
   loading.value = false
   } catch (e) {
@@ -275,7 +285,7 @@ const summaryCards = computed(() => [
         <div class="mb-4 flex items-center justify-between">
           <div>
             <h3 class="font-bold text-venus-900">Tren Pembuatan Soal</h3>
-            <p class="text-xs text-venus-400">12 bulan terakhir</p>
+            <p class="text-xs text-venus-400">Bulan ini</p>
           </div>
           <div class="flex items-center gap-1.5 rounded-lg bg-primary-50 px-3 py-1.5">
             <TrendingUp :size="13" class="text-primary-600" />

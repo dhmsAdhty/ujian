@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { supabase } from '@/services/supabase'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -30,8 +31,10 @@ const router = createRouter({
         { path: 'penugasan', name: 'admin-penugasan', component: () => import('@/views/admin/PenugasanGuru.vue') },
         { path: 'soal', name: 'admin-soal', component: () => import('@/views/admin/StatistikSoal.vue') },
         { path: 'kelas', name: 'admin-kelas', component: () => import('@/views/admin/KelasView.vue') },
-        { path: 'laporan', name: 'admin-laporan', component: () => import('@/views/admin/PlaceholderView.vue') },
-        { path: 'settings', name: 'admin-settings', component: () => import('@/views/admin/PlaceholderView.vue') },
+        { path: 'laporan', name: 'admin-laporan', component: () => import('@/views/admin/LaporanNilai.vue') },
+        { path: 'aktivitas', name: 'admin-aktivitas', component: () => import('@/views/admin/AktivitasPengguna.vue') },
+        { path: 'trash', name: 'admin-trash', component: () => import('@/views/admin/TrashSoal.vue') },
+        { path: 'settings', name: 'admin-settings', component: () => import('@/views/admin/SettingsView.vue') },
       ]
     },
     {
@@ -40,7 +43,8 @@ const router = createRouter({
       meta: { requiresAuth: true, role: 'guru' },
       children: [
         { path: '', name: 'guru-dashboard', component: () => import('@/views/guru/DashboardView.vue') },
-        { path: 'soal', name: 'guru-soal', component: () => import('@/views/guru/BankSoal.vue') },
+        { path: 'soal', name: 'guru-soal', component: () => import('@/views/guru/BankSoalMapel.vue') },
+        { path: 'soal/mapel/:mapelId', name: 'guru-soal-mapel', component: () => import('@/views/guru/BankSoal.vue') },
         { path: 'soal/tambah', name: 'guru-soal-tambah', component: () => import('@/views/guru/SoalForm.vue') },
         { path: 'soal/edit/:id', name: 'guru-soal-edit', component: () => import('@/views/guru/SoalForm.vue') },
         { path: 'nilai', name: 'guru-nilai', component: () => import('@/views/guru/RekapNilai.vue') },
@@ -53,7 +57,26 @@ const router = createRouter({
       meta: { requiresAuth: true, role: 'siswa' },
       children: [
         { path: '', name: 'siswa-examine', component: () => import('@/views/siswa/DashboardView.vue') },
-        { path: 'ujian/:id', name: 'siswa-aktif', component: () => import('@/views/siswa/ActiveExam.vue') }
+        {
+          path: 'ujian/:id',
+          name: 'siswa-aktif',
+          component: () => import('@/views/siswa/ActiveExam.vue'),
+          beforeEnter: async (to) => {
+            const authStore = useAuthStore()
+            // Cek apakah siswa sudah pernah submit ujian ini
+            const { data } = await supabase
+              .from('exam_results')
+              .select('submitted_at')
+              .eq('exam_id', to.params.id)
+              .eq('siswa_id', authStore.user?.id)
+              .not('submitted_at', 'is', null)
+              .maybeSingle()
+            if (data) {
+              // Sudah submit — blokir akses kembali ke ujian
+              return '/siswa'
+            }
+          }
+        }
       ]
     }
   ]

@@ -31,7 +31,7 @@ export function useBankSoal() {
       .eq('guru_id', authStore.user.id)
       .is('deleted_at', null) // Soft delete check
       .range(from, to)
-      .order('created_at', { ascending: false })
+      .order('created_at', { ascending: true })
 
     if (search) query = query.ilike('judul', `%${search}%`)
     if (tipe) query = query.eq('tipe_soal', tipe)
@@ -79,11 +79,42 @@ export function useBankSoal() {
     return false
   }
 
+  async function bulkDeleteSoal(ids) {
+    const result = await Swal.fire({
+      title: `Hapus ${ids.length} soal?`,
+      text: 'Soal yang dipilih akan dipindahkan ke tempat sampah.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#cbd5e1',
+      confirmButtonText: 'Ya, Hapus Semua!',
+      cancelButtonText: 'Batal'
+    })
+
+    if (result.isConfirmed) {
+      const { error } = await supabase
+        .from('bank_soal')
+        .update({ deleted_at: new Date().toISOString() })
+        .in('id', ids)
+        .eq('guru_id', authStore.user.id)
+
+      if (error) {
+        Swal.fire('Gagal', error.message, 'error')
+        return false
+      } else {
+        Swal.fire('Terhapus!', `${ids.length} soal berhasil dihapus.`, 'success')
+        return true
+      }
+    }
+    return false
+  }
+
   return {
     loading,
     items,
     totalItems,
     fetchGuruSoal,
-    softDeleteSoal
+    softDeleteSoal,
+    bulkDeleteSoal
   }
 }

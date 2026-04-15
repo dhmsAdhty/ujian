@@ -26,6 +26,8 @@ const isEdit = computed(() => !!route.params.id)
 const loading = ref(false)
 const saving = ref(false)
 const uploadingOptionIdx = ref(null) // track which option image is uploading
+const allowPgKompleks = ref(true) // state fitur PG Kompleks
+
 
 const form = ref({
   konten: '',
@@ -56,15 +58,21 @@ const fetchData = async () => {
 
   const mapelIds = (penugasan || []).map(r => r.mapel_id).filter(Boolean)
 
-  const [mapelRes, kRes] = await Promise.all([
+  const [mapelRes, kRes, settingsRes] = await Promise.all([
     mapelIds.length > 0
       ? supabase.from('mapel').select('id, nama').in('id', mapelIds).order('nama')
       : Promise.resolve({ data: [] }),
-    supabase.from('kelas').select('*')
+    supabase.from('kelas').select('*'),
+    supabase.from('app_settings').select('key, value').eq('key', 'allow_pg_kompleks')
   ])
 
   mapels.value = mapelRes.data || []
   kelasList.value = kRes.data || []
+  
+  if (settingsRes.data && settingsRes.data.length > 0) {
+    allowPgKompleks.value = settingsRes.data[0].value === 'true'
+  }
+
 
   if (isEdit.value) {
     const { data, error } = await supabase
@@ -393,6 +401,7 @@ const handleSave = async () => {
                   Pilihan Ganda
                 </button>
                 <button
+                  v-if="allowPgKompleks"
                   type="button"
                   @click="setTipe('pilihan_ganda_kompleks')"
                   class="rounded-xl border py-2.5 text-xs font-bold transition-all"
@@ -430,18 +439,6 @@ const handleSave = async () => {
             </div>
           </div>
         </GlassCard>
-
-        <!-- Info rumus nilai -->
-        <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary-700 to-primary-500 p-5 text-white shadow-ios-lg shadow-primary-500/20">
-          <div class="pointer-events-none absolute -bottom-4 -right-4 opacity-10">
-            <HelpCircle :size="100" stroke-width="1.25" />
-          </div>
-          <p class="mb-2 text-xs font-bold uppercase tracking-widest opacity-70">Rumus Penilaian</p>
-          <p class="font-mono text-sm font-bold">Nilai = (Benar / Total) × 100</p>
-          <p class="mt-2 text-xs font-medium leading-relaxed opacity-80">
-            Setiap soal bernilai sama. Nilai akhir dihitung otomatis dari jumlah jawaban benar dibagi total soal dikali 100.
-          </p>
-        </div>
       </div>
     </div>
   </div>

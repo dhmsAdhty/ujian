@@ -8,24 +8,12 @@ const props = defineProps({
   menuItems: {
     type: Array,
     required: true
-    // [{ name, icon (component), path }]
   },
-  brandTitle: {
-    type: String,
-    default: 'CBT ATS'
-  },
-  brandSubtitle: {
-    type: String,
-    default: ''
-  },
-  brandIcon: {
-    type: [Object, Function],
-    default: null
-  },
-  topbarRight: {
-    type: String,
-    default: ''
-  }
+  brandTitle: { type: String, default: 'CBT ATS' },
+  brandSubtitle: { type: String, default: '' },
+  brandIcon: { type: [Object, Function], default: null },
+  topbarRight: { type: String, default: '' },
+  hideSidebar: { type: Boolean, default: false }
 })
 
 const authStore = useAuthStore()
@@ -57,6 +45,7 @@ const isActive = (path) => route.path === path
   <div class="flex h-screen overflow-hidden bg-venus-50">
     <!-- Sidebar -->
     <aside
+      v-if="!hideSidebar"
       class="fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col border-r border-venus-100 bg-white shadow-venus transition-transform duration-300 ease-ios lg:static lg:translate-x-0"
       :class="isSidebarOpen ? 'translate-x-0' : '-translate-x-full'"
     >
@@ -142,6 +131,7 @@ const isActive = (path) => route.path === path
     <div class="flex min-w-0 flex-1 flex-col overflow-hidden">
       <!-- Topbar -->
       <header
+        v-if="!hideSidebar"
         class="sticky top-0 z-30 flex h-[60px] shrink-0 items-center justify-between gap-4 border-b border-venus-100 bg-white/90 px-4 backdrop-blur-xl sm:px-6"
       >
         <div class="flex items-center gap-3">
@@ -190,14 +180,14 @@ const isActive = (path) => route.path === path
       </header>
 
       <!-- Page Content -->
-      <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+      <main :class="hideSidebar ? 'flex-1 overflow-hidden' : 'flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8'">
         <router-view />
       </main>
     </div>
 
     <!-- Mobile overlay -->
     <div
-      v-if="isSidebarOpen"
+      v-if="isSidebarOpen && !hideSidebar"
       class="fixed inset-0 z-40 bg-venus-900/20 backdrop-blur-[2px] lg:hidden"
       aria-hidden="true"
       @click="isSidebarOpen = false"
