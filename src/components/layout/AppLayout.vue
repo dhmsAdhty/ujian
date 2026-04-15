@@ -53,10 +53,9 @@ const isActive = (path) => route.path === path
         <!-- Brand Header — mirrors Venus DrawerItems header -->
         <div class="sticky top-0 z-10 flex items-center gap-3 border-b border-venus-100 bg-white px-6 py-5">
           <div
-            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-600 text-white shadow-ios-sm"
+            class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1 shadow-ios-sm ring-1 ring-venus-200"
           >
-            <component v-if="brandIcon" :is="brandIcon" :size="20" stroke-width="2" />
-            <span v-else class="text-sm font-black">{{ brandTitle.charAt(0) }}</span>
+            <img src="/ATSLogo -trans.png" alt="Logo" class="h-full w-full object-contain" />
           </div>
           <div class="min-w-0 flex-1">
             <h2 class="truncate text-sm font-black uppercase tracking-widest text-primary-600">

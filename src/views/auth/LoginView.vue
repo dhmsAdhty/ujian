@@ -63,9 +63,12 @@ const handleLogin = async () => {
       :enter="{ opacity: 1, y: 0, transition: { duration: 420 } }"
       class="w-full max-w-[460px] rounded-3xl border border-venus-100 bg-white px-8 py-10 sm:px-10"
     >
-      <div class="mb-8 text-center">
-        <h1 class="text-2xl font-black tracking-tight text-venus-900">Masuk</h1>
-        <p class="mt-1.5 text-sm text-venus-400">Masuk dengan akun sekolah Anda</p>
+      <div class="mb-8 flex flex-col items-center text-center">
+        <div class="mb-5 flex h-28 w-28 items-center justify-center overflow-hidden rounded-[24px] bg-white p-3 shadow-ios-md">
+          <img src="/ATSLogo -trans.png" alt="Logo ATS" class="h-full w-full object-contain" />
+        </div>
+        <h1 class="text-2xl font-black tracking-tight text-venus-900">COMPUTER BASED TEST</h1>
+        <p class="mt-1.5 text-sm text-venus-400">Sekolah Tahfidz Al Hikmah</p>
       </div>
 
       <form class="space-y-5" @submit.prevent="handleLogin">
