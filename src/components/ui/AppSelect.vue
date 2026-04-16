@@ -120,45 +120,49 @@ onBeforeUnmount(() => {
         <div
           v-if="open"
           :style="dropdownStyle"
-          class="overflow-hidden rounded-xl border border-venus-100 bg-white shadow-venus"
+          class="rounded-xl border border-venus-100 bg-white shadow-venus"
         >
-          <button
-            v-if="placeholder"
-            type="button"
-            class="flex w-full items-center px-3.5 py-2.5 text-sm text-venus-400 transition-colors hover:bg-venus-50"
-            @mousedown.prevent="emit('update:modelValue', ''); open = false"
-          >
-            {{ placeholder }}
-          </button>
-          <div v-if="placeholder" class="mx-3 border-t border-venus-50" />
-
-          <button
-            v-for="opt in options"
-            :key="typeof opt === 'object' ? opt.value : opt"
-            type="button"
-            class="flex w-full items-center justify-between px-3.5 py-2.5 text-sm font-medium transition-colors"
-            :class="
-              String(typeof opt === 'object' ? opt.value : opt) === String(modelValue)
-                ? 'bg-primary-50 text-primary-700'
-                : 'text-venus-700 hover:bg-venus-50'
-            "
-            @mousedown.prevent="select(opt)"
-          >
-            <span>{{ typeof opt === 'object' ? opt.label : opt }}</span>
-            <svg
-              v-if="String(typeof opt === 'object' ? opt.value : opt) === String(modelValue)"
-              class="h-4 w-4 text-primary-600"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"
+          <!-- Scrollable container dengan max-height -->
+          <div class="max-h-60 overflow-y-auto overscroll-contain rounded-xl">
+            <button
+              v-if="placeholder"
+              type="button"
+              class="flex w-full items-center px-3.5 py-2.5 text-sm text-venus-400 transition-colors hover:bg-venus-50"
+              @mousedown.prevent="emit('update:modelValue', ''); open = false"
             >
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          </button>
+              {{ placeholder }}
+            </button>
+            <div v-if="placeholder" class="mx-3 border-t border-venus-50" />
+
+            <button
+              v-for="opt in options"
+              :key="typeof opt === 'object' ? opt.value : opt"
+              type="button"
+              class="flex w-full items-center justify-between px-3.5 py-2.5 text-sm font-medium transition-colors"
+              :class="
+                String(typeof opt === 'object' ? opt.value : opt) === String(modelValue)
+                  ? 'bg-primary-50 text-primary-700'
+                  : 'text-venus-700 hover:bg-venus-50'
+              "
+              @mousedown.prevent="select(opt)"
+            >
+              <span>{{ typeof opt === 'object' ? opt.label : opt }}</span>
+              <svg
+                v-if="String(typeof opt === 'object' ? opt.value : opt) === String(modelValue)"
+                class="h-4 w-4 shrink-0 text-primary-600"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </button>
+          </div>
         </div>
+
       </Transition>
     </Teleport>
 
