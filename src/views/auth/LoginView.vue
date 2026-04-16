@@ -1,9 +1,9 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import Swal from 'sweetalert2'
-import { LogIn, Mail, Lock } from 'lucide-vue-next'
+import { LogIn, Mail, Lock, ShieldCheck } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -13,13 +13,85 @@ const password = ref('')
 const showPassword = ref(false)
 const loading = ref(false)
 
+// ─── Turnstile ────────────────────────────────────────────
+const SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY
+const turnstileToken = ref('')
+const turnstileWidgetId = ref(null)
+const turnstileReady = ref(false)
+
+const loadTurnstileScript = () => {
+  return new Promise((resolve) => {
+    if (window.turnstile) { resolve(); return }
+    const script = document.createElement('script')
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
+    script.async = true
+    script.defer = true
+    script.onload = resolve
+    document.head.appendChild(script)
+  })
+}
+
+const renderTurnstile = () => {
+  if (!window.turnstile || !SITE_KEY) return
+  turnstileWidgetId.value = window.turnstile.render('#turnstile-container', {
+    sitekey: SITE_KEY,
+    theme: 'light',
+    size: 'normal',
+    callback: (token) => {
+      turnstileToken.value = token
+    },
+    'expired-callback': () => {
+      turnstileToken.value = ''
+    },
+    'error-callback': () => {
+      turnstileToken.value = ''
+    },
+  })
+  turnstileReady.value = true
+}
+
+onMounted(async () => {
+  await loadTurnstileScript()
+  // Tunggu sampai turnstile global tersedia
+  const wait = setInterval(() => {
+    if (window.turnstile) {
+      clearInterval(wait)
+      renderTurnstile()
+    }
+  }, 100)
+})
+
+onBeforeUnmount(() => {
+  if (turnstileWidgetId.value !== null && window.turnstile) {
+    window.turnstile.remove(turnstileWidgetId.value)
+  }
+})
+// ─────────────────────────────────────────────────────────
+
 const handleLogin = async () => {
   if (!email.value || !password.value) return
+
+  // Blokir submit jika CAPTCHA belum selesai
+  if (!turnstileToken.value) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Verifikasi diperlukan',
+      text: 'Selesaikan tantangan keamanan Cloudflare terlebih dahulu.',
+      confirmButtonColor: '#4318ff',
+    })
+    return
+  }
 
   loading.value = true
   const { error } = await authStore.login(email.value, password.value)
 
   if (error) {
+    // Reset turnstile agar tidak bisa reuse token lama
+    if (window.turnstile && turnstileWidgetId.value !== null) {
+      window.turnstile.reset(turnstileWidgetId.value)
+    }
+    turnstileToken.value = ''
+
     Swal.fire({
       icon: 'error',
       title: 'Login gagal',
@@ -134,9 +206,25 @@ const handleLogin = async () => {
           </div>
         </div>
 
+        <!-- Cloudflare Turnstile CAPTCHA -->
+        <div class="space-y-1.5">
+          <label class="ml-0.5 block text-[11px] font-black uppercase tracking-widest text-venus-400">
+            Verifikasi Keamanan
+          </label>
+          <div class="overflow-hidden rounded-xl border border-venus-100 bg-venus-50">
+            <!-- Widget dirender di sini oleh Turnstile -->
+            <div id="turnstile-container" class="flex min-h-[65px] items-center justify-center" />
+          </div>
+          <!-- Status verifikasi -->
+          <p v-if="turnstileToken" class="ml-0.5 flex items-center gap-1 text-[11px] font-semibold text-emerald-600">
+            <ShieldCheck :size="12" /> Verifikasi berhasil
+          </p>
+        </div>
+
+
         <button
           type="submit"
-          :disabled="loading"
+          :disabled="loading || !turnstileToken"
           class="pressable flex w-full items-center justify-center gap-2 rounded-xl bg-primary-600 py-3 text-sm font-semibold text-white shadow-ios-md transition-[transform,background-color,opacity] duration-200 ease-ios active:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
         >
           <span
