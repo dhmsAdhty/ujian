@@ -92,15 +92,29 @@ const handleSave = async () => {
   try {
     if (props.editUser) {
       // Selalu update langsung ke profiles dengan semua field sekaligus
-      const { error: profileError } = await supabase
+      const { data: updatedRows, error: profileError } = await supabase
         .from('profiles')
         .update({
           full_name: form.value.full_name,
           role: form.value.role,
-          kelas_id: form.value.role === 'siswa' ? form.value.kelas_id : null
+          kelas_id: form.value.role === 'siswa' ? (form.value.kelas_id || null) : null
         })
         .eq('id', props.editUser.id)
+        .select()
+
       if (profileError) throw profileError
+
+      // Jika tidak ada baris yang diupdate, kemungkinan RLS memblokir
+      if (!updatedRows || updatedRows.length === 0) {
+        throw new Error(
+          'UPDATE_BLOCKED: Update diblokir oleh RLS policy Supabase.\n\n' +
+          'Jalankan SQL ini di Supabase Dashboard → SQL Editor:\n\n' +
+          'CREATE POLICY "Admin can update any profile"\n' +
+          'ON profiles FOR UPDATE TO authenticated\n' +
+          'USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = \'admin\'))\n' +
+          'WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = \'admin\'));'
+        )
+      }
     } else {
       const { data, error } = await supabase.auth.signUp({
         email: form.value.email,
