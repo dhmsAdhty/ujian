@@ -64,22 +64,18 @@ const fetchActivities = async () => {
   }
 }
 
+  let pollInterval
+
 onMounted(() => {
   fetchActivities()
   
-  // Realtime subscription (opsional, jika ingin list terupdate otomatis saat ada orang start exam / update timestamp)
-  const channel = supabase.channel('activity-logs')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
-       // Debounced fetch
-       setTimeout(fetchActivities, 1000)
-    })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'exam_results' }, () => {
-       setTimeout(fetchActivities, 1000)
-    })
-    .subscribe()
+  // Realtime subscription diganti dengan simple polling 15 detik
+  pollInterval = setInterval(() => {
+    fetchActivities()
+  }, 15000)
 
   onUnmounted(() => {
-    supabase.removeChannel(channel)
+    clearInterval(pollInterval)
   })
 })
 

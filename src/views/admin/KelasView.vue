@@ -18,7 +18,7 @@ const errors = ref({})
 
 const fetchKelas = async () => {
   loading.value = true
-  let query = supabase.from('kelas').select('*').order('nama')
+  let query = supabase.from('kelas').select('id, nama, created_at').order('nama')
   if (searchQuery.value) query = query.ilike('nama', `%${searchQuery.value}%`)
   const { data, error } = await query
   if (error) Swal.fire('Error', error.message, 'error')

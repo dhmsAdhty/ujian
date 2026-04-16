@@ -12,20 +12,16 @@ export const useAuthStore = defineStore('auth', () => {
   const role = computed(() => profile.value?.role || null)
 
   async function fetchProfile() {
-    if (!user.value) return
+    if (!user.value || profile.value) return // Return if profile exists in session/cache
 
     const { data, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id, full_name, role, kelas_id, avatar_url')
       .eq('id', user.value.id)
       .single()
 
     if (!error) {
       profile.value = data
-      await supabase
-        .from('profiles')
-        .update({ last_login: new Date().toISOString() })
-        .eq('id', user.value.id)
     }
   }
 
@@ -46,6 +42,11 @@ export const useAuthStore = defineStore('auth', () => {
 
     if (!error) {
       user.value = data.user
+      // Only capture last login organically via explicitly logged-in behavior
+      await supabase
+        .from('profiles')
+        .update({ last_login: new Date().toISOString() })
+        .eq('id', user.value.id)
       await fetchProfile()
     }
 

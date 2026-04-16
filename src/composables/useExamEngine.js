@@ -1,6 +1,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { supabase } from '@/services/supabase'
 import { useAuthStore } from '@/stores/auth'
+import { useExamCache } from '@/composables/useExamCache'
 import Swal from 'sweetalert2'
 
 export function useExamEngine(examId, { onViolationSubmit, onTimerEnd } = {}) {
@@ -47,17 +48,14 @@ export function useExamEngine(examId, { onViolationSubmit, onTimerEnd } = {}) {
       return
     }
 
-    // Fetch soal via relasi ujian_soal, hanya soal yang terdaftar di ujian ini
-    const { data: soalData, error: soalError } = await supabase
-      .from('ujian_soal')
-      .select('urutan, bank_soal(*)')
-      .eq('ujian_id', examId)
-      .order('urutan', { ascending: true })
+    // Fetch soal via relasi ujian_soal, menggunakan sistem cache agar meringankan beban DB
+    const { fetchExamSoal } = useExamCache()
+    const { data: soalListUnsorted, error: soalError } = await fetchExamSoal(examId)
 
-    if (soalError) {
+    if (soalError || !soalListUnsorted) {
       Swal.fire('Gagal', 'Gagal memuat soal ujian', 'error')
     } else {
-      let soalList = soalData.map(row => row.bank_soal)
+      let soalList = [...soalListUnsorted]
 
       // Acak soal jika diaktifkan
       if (ujianData.acak_soal) {

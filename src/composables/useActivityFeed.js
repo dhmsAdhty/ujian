@@ -33,36 +33,15 @@ export function useActivityFeed() {
     loading.value = false
   }
 
+  let pollInterval
+
   onMounted(() => {
     fetchInitialActivities()
-
-    const channel = supabase.channel('realtime_activities')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, (payload) => {
-        if (payload.new.last_login !== payload.old.last_login) {
-          activities.value.unshift({
-            id: `login-${payload.new.id}-${Date.now()}`,
-            type: 'login',
-            title: 'User Login',
-            description: `${payload.new.full_name} baru saja masuk ke sistem.`,
-            time: payload.new.last_login
-          })
-          activities.value = activities.value.slice(0, 10)
-        }
-      })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'bank_soal' }, (payload) => {
-        activities.value.unshift({
-          id: `soal-${payload.new.id}`,
-          type: 'soal',
-          title: 'Soal Baru',
-          description: `Soal baru telah ditambahkan ke bank soal.`,
-          time: payload.new.created_at
-        })
-        activities.value = activities.value.slice(0, 10)
-      })
-      .subscribe()
+    
+    pollInterval = setInterval(fetchInitialActivities, 15000)
 
     onUnmounted(() => {
-      supabase.removeChannel(channel)
+      clearInterval(pollInterval)
     })
   })
 

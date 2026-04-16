@@ -77,7 +77,7 @@ const fetchData = async () => {
   if (isEdit.value) {
     const { data, error } = await supabase
       .from('bank_soal')
-      .select('*')
+      .select('id, konten, tipe_soal, mapel_id, kelas_id, media_url, kunci_jawaban, options')
       .eq('id', route.params.id)
       .single()
 
