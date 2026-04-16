@@ -1,0 +1,4 @@
+# Cloudflare Pages - SPA routing support
+# Semua path dialihkan ke index.html agar Vue Router bisa handle routing
+
+/*    /index.html   200
