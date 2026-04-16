@@ -38,3 +38,6 @@ __screenshots__/
 
 # Vite
 *.timestamp-*-*.mjs
+
+# Custom Scripts
+block_bots.py
