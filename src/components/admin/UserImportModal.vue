@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import * as XLSX from 'xlsx'
 import { supabase } from '@/services/supabase'
 import { X, Upload, FileSpreadsheet, Download, Info, CheckCircle2, AlertCircle } from 'lucide-vue-next'
@@ -13,14 +13,20 @@ const fileData = ref(null)
 const fileName = ref('')
 const loading = ref(false)
 const results = ref(null) // { success, failed }
+const kelasList = ref([])
+
+onMounted(async () => {
+  const { data } = await supabase.from('kelas').select('id, nama')
+  if (data) kelasList.value = data
+})
 
 const downloadTemplate = () => {
   const ws = XLSX.utils.json_to_sheet([
-    { full_name: 'Budi Santoso', email: 'budi@sekolah.sch.id', password: 'password123', role: 'siswa' },
-    { full_name: 'Siti Rahayu', email: 'siti@sekolah.sch.id', password: 'password123', role: 'guru' },
+    { full_name: 'Budi Santoso', email: 'budi@sekolah.sch.id', password: 'password123', role: 'siswa', kelas: '10 MIPA 1' },
+    { full_name: 'Siti Rahayu', email: 'siti@sekolah.sch.id', password: 'password123', role: 'guru', kelas: '' },
   ])
   // Set column widths
-  ws['!cols'] = [{ wch: 25 }, { wch: 30 }, { wch: 15 }, { wch: 10 }]
+  ws['!cols'] = [{ wch: 25 }, { wch: 30 }, { wch: 15 }, { wch: 10 }, { wch: 15 }]
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Template User')
   XLSX.writeFile(wb, 'template_import_user.xlsx')
@@ -49,30 +55,85 @@ const processImport = async () => {
   let failed = 0
   const failedRows = []
 
+  // ⚠️ KEAMANAN: Simpan sesi admin sebelum loop import dimulai.
+  // supabase.auth.signUp() di sisi klien akan otomatis mengganti sesi aktif
+  // dengan sesi user yang baru dibuat. Kita harus restore sesi admin setelahnya.
+  const { data: sessionData } = await supabase.auth.getSession()
+  const adminSession = sessionData?.session
+
+  if (!adminSession) {
+    Swal.fire('Sesi Tidak Valid', 'Silakan login ulang sebagai admin sebelum mengimpor user.', 'error')
+    loading.value = false
+    return
+  }
+
   for (const row of fileData.value) {
+    // Abaikan baris yang kosong atau property kosong dari excel header yang tersisa
+    if (!row || Object.keys(row).length === 0) continue
+    const isRowEmpty = !row.email && !row.password && !row.role && !row.full_name && !row.kelas
+    if (isRowEmpty) continue
+
     if (!row.email || !row.password || !row.role) {
       failed++
-      failedRows.push(row.email || '(no email)')
+      failedRows.push(`${row.full_name || 'Tanpa Nama'} (Data tidak lengkap)`)
       continue
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email: String(row.email).trim(),
         password: String(row.password),
         options: {
           data: {
             full_name: row.full_name || '',
-            role: row.role,
+            role: String(row.role).toLowerCase(),
           },
         },
       })
       // Trigger handle_new_user di DB akan insert ke profiles otomatis
       if (error) throw error
+
+      // 🔐 Pulihkan sesi admin setelah signUp agar tidak berpindah ke akun baru
+      await supabase.auth.setSession({
+        access_token: adminSession.access_token,
+        refresh_token: adminSession.refresh_token,
+      })
+
+      // Jika role siswa dan ada kolom kelas, cari id kelas berdasarkan nama dan update
+      if (String(row.role).toLowerCase() === 'siswa' && row.kelas && data?.user) {
+        const matchingKelas = kelasList.value.find(k => k.nama.toLowerCase() === String(row.kelas).trim().toLowerCase())
+        if (matchingKelas) {
+          await supabase.from('profiles').update({ kelas_id: matchingKelas.id }).eq('id', data.user.id)
+        }
+      }
+
       success++
-    } catch {
+    } catch (err) {
+      // Pastikan sesi admin dipulihkan meski terjadi error
+      await supabase.auth.setSession({
+        access_token: adminSession.access_token,
+        refresh_token: adminSession.refresh_token,
+      }).catch(() => {})
+
       failed++
-      failedRows.push(row.email)
+      const msg = err.message || 'Gagal tersimpan'
+      failedRows.push(`${row.email} (${msg})`)
+      
+      // Stop loop and notify if rate limit hit
+      if (msg.toLowerCase().includes('rate') || msg.toLowerCase().includes('limit')) {
+        loading.value = false
+        Swal.fire({
+          icon: 'warning',
+          title: 'Batasan Request (Rate Limit)',
+          html: `Supabase membatasi jumlah pembuatan user dalam rentang waktu tertentu.<br><br>
+            <b>Solusinya:</b> Buka Supabase Dashboard Anda:<br>
+            <i>Authentication → Settings → Rate Limits</i><br>
+            Lalu naikkan limit <b>Email Signups Rate Limit</b> (contoh: 1000).<br><br>
+            Dan pastikan <b>Enable email confirmations</b> sudah dimatikan di menu <i>Providers → Email</i>.`
+        })
+        results.value = { success, failed, failedRows }
+        return
+      }
     }
   }
 
@@ -146,7 +207,7 @@ const reset = () => {
                   <Info :size="18" class="shrink-0 text-blue-500" />
                   <div>
                     <p class="text-sm font-semibold text-blue-800">Gunakan template standar</p>
-                    <p class="text-xs text-blue-500">Kolom: full_name, email, password, role</p>
+                    <p class="text-xs text-blue-500">Kolom: full_name, email, password, role, kelas</p>
                   </div>
                 </div>
                 <button
@@ -206,7 +267,11 @@ const reset = () => {
                       <AlertCircle :size="16" />
                       {{ results.failed }} user gagal
                     </div>
-                    <p class="mt-1 text-xs text-red-500">{{ results.failedRows.join(', ') }}</p>
+                    <div class="mt-1 max-h-32 overflow-y-auto pr-2">
+                      <ul class="list-inside list-disc text-xs text-red-500">
+                        <li v-for="(errMsg, i) in results.failedRows" :key="i">{{ errMsg }}</li>
+                      </ul>
+                    </div>
                   </div>
                 </div>
 
