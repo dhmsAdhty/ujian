@@ -45,7 +45,7 @@ watch(() => props.result, async (val) => {
 
   const { data } = await supabase
     .from('ujian_soal')
-    .select('urutan, bank_soal(id, konten, tipe_soal, kunci_jawaban, options, judul)')
+    .select('urutan, bank_soal(id, konten, tipe_soal, kunci_jawaban, options, judul, media_url)')
     .eq('ujian_id', val.exam_id)
     .order('urutan', { ascending: true })
 
@@ -290,6 +290,9 @@ const save = async () => {
                   <Minus :size="11" /> Tidak dijawab
                 </span>
               </template>
+            </div>
+            <div v-if="soal.media_url" class="mb-3 rounded-xl overflow-hidden border border-slate-100 max-w-md">
+              <img :src="soal.media_url" class="w-full h-auto max-h-72 object-contain bg-white" alt="Lampiran Soal" />
             </div>
             <p class="text-sm text-slate-700 leading-relaxed">{{ soal.konten }}</p>
           </div>
