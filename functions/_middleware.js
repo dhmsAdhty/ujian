@@ -25,7 +25,7 @@ export async function onRequest(context) {
   const country = cf?.country;
   if (country && country !== 'ID') {
     return new Response(
-      'Akses Ditolak: Aplikasi ini hanya untuk pengguna di Indonesia.',
+      'Akses Ditolak.',
       { 
         status: 403,
         headers: { 'Content-Type': 'text/plain; charset=utf-8' }
@@ -36,7 +36,7 @@ export async function onRequest(context) {
   // ─── 4. THREAT SCORE (FIX: gunakan camelCase) ───────────────────
   const threatScore = cf?.threatScore ?? 0;
   if (threatScore > 10) {
-    return new Response('Akses Ditolak: IP anda terdeteksi berbahaya.', { status: 403 });
+    return new Response('Akses Ditolak.', { status: 403 });
   }
 
   // ─── 5. DETEKSI BOT VIA USER-AGENT ──────────────────────────────
@@ -69,7 +69,7 @@ export async function onRequest(context) {
   if (isApiRequest) {
     const atsSource = request.headers.get('X-ATS-Source');
     if (atsSource !== 'ats-web-app') {
-      return new Response('Akses Ditolak: Invalid Source.', { status: 403 });
+      return new Response('Akses Ditolak.', { status: 403 });
     }
   }
 
