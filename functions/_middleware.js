@@ -3,53 +3,82 @@ export async function onRequest(context) {
   const cf = request.cf;
   const url = new URL(request.url);
   const userAgent = request.headers.get('user-agent') || '';
+  const pathname = url.pathname.toLowerCase();
 
-  // 1. HONEYPOT: Blokir path yang biasa diprobe Bot/Attacker
+  // ─── 1. HONEYPOT PATH ───────────────────────────────────────────
   const blockedPaths = [
-    '.env', '.git', 'wp-admin', 'wp-login', 'phpmyadmin', 
-    'config.php', 'xmlrpc.php', 'composer.json', '.well-known',
-    'cgi-bin', 'ads.txt'
+    '.env', '.git', 'wp-admin', 'wp-login', 'phpmyadmin',
+    'config.php', 'xmlrpc.php', 'composer.json', 'cgi-bin',
+    'ads.txt', '.well-known/acme', 'actuator', 'telescope'
   ];
-  if (blockedPaths.some(path => url.pathname.toLowerCase().includes(path))) {
-    return new Response('Akses Ditolak: Stop kepo.', { status: 403 });
+  if (blockedPaths.some(p => pathname.includes(p))) {
+    return new Response('Forbidden', { status: 403 });
   }
 
-  // 2. CEK NEGARA (Hanya Izinkan Indonesia)
+  // ─── 2. IZINKAN ASSET STATIS TANPA CEK (PERFORMA) ───────────────
+  const isStaticAsset = /\.(png|jpg|jpeg|gif|webp|svg|ico|css|js|woff2?|ttf|otf|map)$/.test(pathname);
+  if (isStaticAsset) {
+    return await next(); // Langsung lewat, Cloudflare cache handle ini
+  }
+
+  // ─── 3. GEO-BLOCKING (Setelah static asset dilewat) ─────────────
   const country = cf?.country;
-  const ALLOWED_COUNTRY = 'ID';
-  if (country && country !== ALLOWED_COUNTRY) {
-    // Beri pengecualian untuk file statis seperti images/css
-    if (!url.pathname.match(/\.(png|jpg|css|js|ico|svg|woff2|webp)$/)) {
-      return new Response('Akses Ditolak: Aplikasi ini khusus di Indonesia.', { status: 403 });
+  if (country && country !== 'ID') {
+    return new Response(
+      'Akses Ditolak: Aplikasi ini hanya untuk pengguna di Indonesia.',
+      { 
+        status: 403,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+      }
+    );
+  }
+
+  // ─── 4. THREAT SCORE (FIX: gunakan camelCase) ───────────────────
+  const threatScore = cf?.threatScore ?? 0;
+  if (threatScore > 10) {
+    return new Response('Akses Ditolak: IP anda terdeteksi berbahaya.', { status: 403 });
+  }
+
+  // ─── 5. DETEKSI BOT VIA USER-AGENT ──────────────────────────────
+  const botPatterns = [
+    'python-requests', 'python-urllib', 'go-http-client', 'node-fetch',
+    'scrapy', 'curl/', 'wget/', 'headlesschrome', 'phantomjs',
+    'ahrefsbot', 'semrushbot', 'dataforseobot', 'dotbot', 'petalbot',
+    'bytespider', 'baiduspider', 'mj12bot', 'blexbot', 'yandexbot',
+    'sogou', 'exabot', 'facebot', 'ia_archiver'
+  ];
+  const uaLower = userAgent.toLowerCase();
+  if (botPatterns.some(p => uaLower.includes(p))) {
+    return new Response('Forbidden', { status: 403 });
+  }
+
+  // ─── 6. VALIDASI HEADER BROWSER MANUSIA ─────────────────────────
+  const secFetchMode = request.headers.get('sec-fetch-mode');
+  const acceptLang   = request.headers.get('accept-language');
+  const accept       = request.headers.get('accept') || '';
+
+  // Request ke halaman HTML tapi tidak ada tanda-tanda browser asli
+  const isPageRequest = !pathname.includes('/rest/') && 
+                        !pathname.includes('/api/');
+  if (isPageRequest && !secFetchMode && !acceptLang) {
+    return new Response('Forbidden', { status: 403 });
+  }
+
+  // ─── 7. SECRET HANDSHAKE UNTUK API ──────────────────────────────
+  const isApiRequest = pathname.includes('/rest/v1/') || pathname.includes('/api/');
+  if (isApiRequest) {
+    const atsSource = request.headers.get('X-ATS-Source');
+    if (atsSource !== 'ats-web-app') {
+      return new Response('Akses Ditolak: Invalid Source.', { status: 403 });
     }
   }
 
-  // 3. CEK SKOR ANCAMAN (Threat Score dari Cloudflare)
-  if (cf?.threat_score > 10) {
-    return new Response('Akses Ditolak: Skor ancaman IP anda terlalu tinggi.', { status: 403 });
-  }
-
-  // 4. DETEKSI BOT BERDASARKAN USER-AGENT
-  const botPatterns = [
-    'python-requests', 'Python-urllib', 'Go-http-client', 'node-fetch', 
-    'Scrapy', 'curl', 'wget', 'HeadlessChrome', 'AhrefsBot', 'semrushbot',
-    'DataForSeoBot', 'DotBot', 'PetalBot', 'Bytespider', 'Baiduspider'
-  ];
-
-  if (botPatterns.some(pattern => userAgent.toLowerCase().includes(pattern.toLowerCase()))) {
-    return new Response('Akses Ditolak: Bot tidak diizinkan masuk.', { status: 403 });
-  }
-
-  // 5. CEK HEADER BROWSER STANDAR
-  const isHuman = request.headers.get('sec-fetch-mode') || request.headers.get('accept-language');
-  if (!isHuman && !userAgent.includes('Mozilla')) {
-    return new Response('Akses Ditolak: Browser tidak valid.', { status: 403 });
-  }
-
-  // 6. SECRET HANDSHAKE: Cek apakah request datang dari client yang sah (Opsional untuk API)
-  if (url.pathname.includes('/rest/v1/') && request.headers.get('X-ATS-Source') !== 'ats-web-app') {
-     return new Response('Akses Ditolak: Invalid Source.', { status: 403 });
-  }
+  // ─── 8. CLOUDFLARE BOT SCORE (Jika pakai Pro/Business) ──────────
+  // Uncomment jika plan kamu mendukung Bot Management
+  // const botScore = cf?.botManagement?.score ?? 100;
+  // if (botScore < 30) {
+  //   return new Response('Forbidden', { status: 403 });
+  // }
 
   return await next();
 }
