@@ -91,7 +91,7 @@ export async function onRequest(context) {
   const forbiddenExts = /\.(txt|php|env|sql|yaml|yml|log|bak|config|swp|sh|bat|ini|bak|zip|rar)$/i;
   if (forbiddenExts.test(pathname)) {
     return new Response(
-      renderErrorPage('Akses Ditolak', 'Maaf, permintaan Anda diblokir karena mencoba mengakses file sensitif.', 'FORBIDDEN_EXTENSION'),
+      renderErrorPage('Akses Ditolak', 'Sorry Om', 'FORBIDDEN'),
       { status: 403, headers: { 'Content-Type': 'text/html' } }
     );
   }
@@ -105,7 +105,7 @@ export async function onRequest(context) {
   ];
   if (blockedPaths.some(p => pathname.includes(p))) {
     return new Response(
-      renderErrorPage('Akses Ditolak', 'Aktivitas mencurigakan terdeteksi. Silakan gunakan browser resmi.', 'HONEYPOT_TRAP'),
+      renderErrorPage('Akses Ditolak', 'Aktivitas mencurigakan terdeteksi.', 'HONEYPOT_TRAP'),
       { status: 403, headers: { 'Content-Type': 'text/html' } }
     );
   }
@@ -120,7 +120,7 @@ export async function onRequest(context) {
   const country = cf?.country;
   if (country && country !== 'ID') {
     return new Response(
-      renderErrorPage('Wilayah Terbatas', 'Sistem CBT ini hanya dapat diakses dari wilayah Indonesia.', 'GEO_LOCATION_RESTRICTED'),
+      renderErrorPage('Error 403'),
       { 
         status: 403, 
         headers: { 'Content-Type': 'text/html' } 
@@ -148,7 +148,7 @@ export async function onRequest(context) {
   const uaLower = userAgent.toLowerCase();
   if (botPatterns.some(p => uaLower.includes(p))) {
     return new Response(
-      renderErrorPage('Terdeteksi Bot', 'Sistem kami mendeteksi penggunaan script otomatis. Silakan gunakan browser.', 'BOT_USER_AGENT'),
+      renderErrorPage('Error', 'Sorry Om Tak tolak'),
       { status: 403, headers: { 'Content-Type': 'text/html' } }
     );
   }
@@ -166,7 +166,7 @@ export async function onRequest(context) {
 
   if (isPageRequest && !secFetchMode && !acceptLang) {
     return new Response(
-      renderErrorPage('Anomali Browser', 'Koneksi Anda tidak terlihat seperti browser normal.', 'BROWSER_INTEGRITY_FAIL'),
+      renderErrorPage('Anomali Browser', 'DASAR ANOMALI'),
       { status: 403, headers: { 'Content-Type': 'text/html' } }
     );
   }
