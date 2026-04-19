@@ -158,6 +158,7 @@ export async function onRequest(context) {
   const secFetchMode = request.headers.get('sec-fetch-mode');
   const secFetchDest = request.headers.get('sec-fetch-dest');
   const acceptLang   = request.headers.get('accept-language');
+  const isPageRequest = secFetchMode === 'navigate' || secFetchDest === 'document';
   
   // Deteksi Anomali: Browser lama (seperti Tab Samsung jadul) mungkin tidak 
   // mengirimkan sec-fetch-mode. Kita hanya blokir jika BENAR-BENAR tidak ada header dasar.
