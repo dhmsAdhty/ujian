@@ -86,8 +86,14 @@ export async function onRequest(context) {
   const userAgent = request.headers.get('user-agent') || '';
   const pathname = url.pathname.toLowerCase();
 
-  // ─── 0. BLOCK EKSTENSI SENSITIF (INSTANT DROP) ───────────────────
-  // Menangani lonjakan probing .txt dan file konfigurasi secara efisien
+  // ─── 0. IZINKAN ASSET STATIS TANPA CEK (PERFORMA) ───────────────
+  // Pastikan asset selalu bisa diakses agar web tidak pecah
+  const isStaticAsset = /\.(png|jpg|jpeg|gif|webp|svg|ico|css|js|woff2?|ttf|otf|map)$/i.test(pathname) || pathname.startsWith('/assets/');
+  if (isStaticAsset) {
+    return await next();
+  }
+
+  // ─── 1. BLOCK EKSTENSI SENSITIF (INSTANT DROP) ───────────────────
   const forbiddenExts = /\.(txt|php|env|sql|yaml|yml|log|bak|config|swp|sh|bat|ini|bak|zip|rar)$/i;
   if (forbiddenExts.test(pathname)) {
     return new Response(
@@ -96,24 +102,18 @@ export async function onRequest(context) {
     );
   }
 
-  // ─── 1. HONEYPOT PATH (JEBAKAN BOT) ──────────────────────────────
+  // ─── 2. HONEYPOT PATH (JEBAKAN BOT) ──────────────────────────────
   const blockedPaths = [
-    '.env', '.git', 'wp-admin', 'wp-login', 'phpmyadmin',
-    'config.php', 'xmlrpc.php', 'composer.json', 'cgi-bin',
-    'ads.txt', '.well-known/acme', 'actuator', 'telescope',
-    'debug', 'monitor', 'setup', 'install'
+    '/.env', '/.git', '/wp-admin', '/wp-login', '/phpmyadmin',
+    '/config.php', '/xmlrpc.php', '/composer.json', '/cgi-bin',
+    '/ads.txt', '/.well-known/acme', '/actuator', '/telescope',
+    '/debug', '/monitor', '/setup', '/install'
   ];
-  if (blockedPaths.some(p => pathname.includes(p))) {
+  if (blockedPaths.some(p => pathname === p || pathname.startsWith(p + '/'))) {
     return new Response(
       renderErrorPage('Akses Ditolak', 'Aktivitas mencurigakan terdeteksi.', 'HONEYPOT_TRAP'),
       { status: 403, headers: { 'Content-Type': 'text/html' } }
     );
-  }
-
-  // ─── 2. IZINKAN ASSET STATIS TANPA CEK (PERFORMA) ───────────────
-  const isStaticAsset = /\.(png|jpg|jpeg|gif|webp|svg|ico|css|js|woff2?|ttf|otf|map)$/.test(pathname);
-  if (isStaticAsset) {
-    return await next(); // Langsung lewat, Cloudflare cache handle ini
   }
 
   // ─── 3. GEO-BLOCKING (Setelah static asset dilewat) ─────────────
