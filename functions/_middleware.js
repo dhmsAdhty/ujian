@@ -128,11 +128,12 @@ export async function onRequest(context) {
     );
   }
 
-  // ─── 4. THREAT SCORE (FIX: gunakan camelCase) ───────────────────
+  // ─── 4. THREAT SCORE (Ditingkatkan untuk Sekolah) ───────────────
+  // Menaikkan ambang batas ke 40 agar lebih toleran terhadap IP sekolah/NAT
   const threatScore = cf?.threatScore ?? 0;
-  if (threatScore > 10) {
+  if (threatScore > 40) {
     return new Response(
-      renderErrorPage('Skor Ancaman Tinggi', 'Keamanan Cloudflare menandai koneksi Anda berisiko. Coba matikan VPN.', 'HIGH_THREAT_SCORE'),
+      renderErrorPage('Koneksi Berisiko', 'Keamanan Cloudflare menandai koneksi Anda berisiko tinggi. Coba gunakan jaringan lain.', 'HIGH_THREAT_SCORE'),
       { status: 403, headers: { 'Content-Type': 'text/html' } }
     );
   }
@@ -158,15 +159,11 @@ export async function onRequest(context) {
   const secFetchDest = request.headers.get('sec-fetch-dest');
   const acceptLang   = request.headers.get('accept-language');
   
-  // Deteksi Anomali: Browser modern selalu mengirimkan sec-fetch-mode
-  // Jika ini request halaman (bukan API/Asset) tapi tidak ada header ini, kemungkinan bot/curl
-  const isPageRequest = !pathname.includes('/rest/') && 
-                        !pathname.includes('/api/') &&
-                        pathname !== '/';
-
-  if (isPageRequest && !secFetchMode && !acceptLang) {
+  // Deteksi Anomali: Browser lama (seperti Tab Samsung jadul) mungkin tidak 
+  // mengirimkan sec-fetch-mode. Kita hanya blokir jika BENAR-BENAR tidak ada header dasar.
+  if (isPageRequest && !acceptLang && !userAgent) {
     return new Response(
-      renderErrorPage('Anomali Browser', 'DASAR ANOMALI'),
+      renderErrorPage('Akses Dibatalkan', 'Browser Anda tidak mengirimkan identitas dasar. Gunakan Chrome terbaru.', 'ANOMALY_DETECTED'),
       { status: 403, headers: { 'Content-Type': 'text/html' } }
     );
   }
