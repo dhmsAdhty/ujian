@@ -294,7 +294,7 @@ const save = async () => {
             <div v-if="soal.media_url" class="mb-3 rounded-xl overflow-hidden border border-slate-100 max-w-md">
               <img :src="soal.media_url" class="w-full h-auto max-h-72 object-contain bg-white" alt="Lampiran Soal" />
             </div>
-            <p class="text-sm text-slate-700 leading-relaxed">{{ soal.konten }}</p>
+            <div class="soal-konten text-sm text-slate-700 leading-relaxed" v-html="soal.konten" />
           </div>
         </div>
 
@@ -366,10 +366,13 @@ const save = async () => {
           <!-- Pedoman jawaban / kunci -->
           <div>
             <p class="text-[10px] text-slate-400 uppercase tracking-widest mb-1.5">Pedoman / Kunci Jawaban</p>
-            <div class="bg-amber-50 rounded-lg border border-amber-100 px-3 py-2.5 text-sm leading-relaxed"
-              :class="soal.kunci_jawaban ? 'text-amber-800' : 'text-slate-400 italic'"
-            >
-              {{ soal.kunci_jawaban || 'Tidak ada pedoman jawaban.' }}
+            <div
+              v-if="soal.kunci_jawaban"
+              class="soal-konten bg-amber-50 rounded-lg border border-amber-100 px-3 py-2.5 text-sm leading-relaxed text-amber-800"
+              v-html="soal.kunci_jawaban"
+            />
+            <div v-else class="bg-amber-50 rounded-lg border border-amber-100 px-3 py-2.5 text-sm text-slate-400 italic">
+              Tidak ada pedoman jawaban.
             </div>
           </div>
 
@@ -416,3 +419,40 @@ const save = async () => {
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Prose styles for rich-text HTML rendered from Tiptap */
+.soal-konten :deep(p) { margin: 0 0 0.25em; }
+.soal-konten :deep(h1) { font-size: 1.3em; font-weight: 800; margin: 0.4em 0 0.2em; }
+.soal-konten :deep(h2) { font-size: 1.15em; font-weight: 700; margin: 0.3em 0 0.15em; }
+.soal-konten :deep(h3) { font-size: 1.05em; font-weight: 700; margin: 0.25em 0 0.1em; }
+.soal-konten :deep(ul) { padding-left: 1.4em; list-style: disc; margin: 0.25em 0; }
+.soal-konten :deep(ol) { padding-left: 1.4em; list-style: decimal; margin: 0.25em 0; }
+.soal-konten :deep(li) { margin: 0.1em 0; }
+.soal-konten :deep(strong) { font-weight: 700; }
+.soal-konten :deep(em) { font-style: italic; }
+.soal-konten :deep(u) { text-decoration: underline; }
+.soal-konten :deep(s) { text-decoration: line-through; }
+.soal-konten :deep(blockquote) {
+  border-left: 3px solid #7c6ff7;
+  padding: 3px 12px;
+  margin: 0.3em 0;
+  color: #6b7280;
+  background: rgba(124,111,247,0.05);
+  border-radius: 0 6px 6px 0;
+}
+.soal-konten :deep(code) {
+  background: #f1f0fb;
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-family: monospace;
+  font-size: 0.88em;
+  color: #5b21b6;
+}
+.soal-konten :deep(hr) {
+  border: none;
+  border-top: 1.5px solid #e2e8f0;
+  margin: 0.5em 0;
+}
+.soal-konten :deep(mark) { border-radius: 3px; padding: 0 2px; }
+</style>

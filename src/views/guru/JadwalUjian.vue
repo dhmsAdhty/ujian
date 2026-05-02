@@ -248,16 +248,27 @@ const handleDelete = async (ujian) => {
   else fetchData()
 }
 
-const statusBadge = (status) => {
-  if (status === 'aktif') return 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100'
-  if (status === 'selesai') return 'bg-venus-100 text-venus-500'
-  return 'bg-amber-50 text-amber-700 ring-1 ring-amber-100'
-}
+// Hitung status efektif berdasarkan waktu nyata
+const getEffectiveStatus = (ujian) => {
+  const now = new Date()
+  const mulai = ujian.tanggal_mulai ? new Date(ujian.tanggal_mulai) : null
+  const selesai = ujian.tanggal_selesai ? new Date(ujian.tanggal_selesai) : null
 
-const statusLabel = (status) => {
-  if (status === 'aktif') return 'Aktif'
-  if (status === 'selesai') return 'Selesai'
-  return 'Draft'
+  if (ujian.status === 'draft') return { label: 'Draft', badge: 'bg-amber-50 text-amber-700 ring-1 ring-amber-100' }
+  if (ujian.status === 'selesai') return { label: 'Selesai', badge: 'bg-venus-100 text-venus-500' }
+
+  // Status aktif — cek apakah masih dalam rentang waktu
+  if (ujian.status === 'aktif') {
+    if (mulai && now < mulai) {
+      return { label: 'Belum Mulai', badge: 'bg-blue-50 text-blue-600 ring-1 ring-blue-100' }
+    }
+    if (selesai && now > selesai) {
+      return { label: 'Berakhir', badge: 'bg-red-50 text-red-500 ring-1 ring-red-100' }
+    }
+    return { label: 'Berlangsung', badge: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100' }
+  }
+
+  return { label: ujian.status, badge: 'bg-venus-100 text-venus-400' }
 }
 </script>
 
@@ -567,8 +578,11 @@ const statusLabel = (status) => {
             </td>
             <td class="px-6 py-4 text-venus-500 text-xs">{{ formatDate(ujian.tanggal_mulai) }}</td>
             <td class="px-6 py-4">
-              <span class="inline-flex rounded-lg px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide" :class="statusBadge(ujian.status)">
-                {{ statusLabel(ujian.status) }}
+              <span
+                class="inline-flex rounded-lg px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide"
+                :class="getEffectiveStatus(ujian).badge"
+              >
+                {{ getEffectiveStatus(ujian).label }}
               </span>
             </td>
             <td class="px-6 py-4">

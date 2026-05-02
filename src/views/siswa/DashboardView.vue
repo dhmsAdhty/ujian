@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   ClipboardList,
@@ -127,6 +127,40 @@ const getInitials = (str) => {
   if (!str) return 'U'
   return str.charAt(0).toUpperCase()
 }
+
+// Status waktu ujian
+const now = ref(new Date())
+let clockInterval = null
+onUnmounted(() => clearInterval(clockInterval))
+onMounted(() => {
+  clockInterval = setInterval(() => { now.value = new Date() }, 10000) // update setiap 10 detik
+})
+
+const examTimeStatus = (exam) => {
+  const mulai = exam.tanggal_mulai ? new Date(exam.tanggal_mulai) : null
+  const selesai = exam.tanggal_selesai ? new Date(exam.tanggal_selesai) : null
+  const n = now.value
+
+  if (mulai && n < mulai) return 'belum_mulai'
+  if (selesai && n > selesai) return 'berakhir'
+  return 'berlangsung'
+}
+
+const visibleExams = computed(() => {
+  // Sembunyikan ujian yang sudah berakhir, tampilkan yg berlangsung & belum mulai
+  return availableExams.value.filter(e => examTimeStatus(e) !== 'berakhir')
+})
+
+const formatCountdown = (exam) => {
+  const mulai = new Date(exam.tanggal_mulai)
+  const diff = mulai - now.value
+  if (diff <= 0) return null
+  const h = Math.floor(diff / 3600000)
+  const m = Math.floor((diff % 3600000) / 60000)
+  if (h > 0) return `${h} jam ${m} menit lagi`
+  return `${m} menit lagi`
+}
+
 </script>
 
 <template>
@@ -187,7 +221,7 @@ const getInitials = (str) => {
           />
         </div>
 
-        <div v-else-if="availableExams.length === 0">
+        <div v-else-if="visibleExams.length === 0">
           <EmptyState 
             title="Tidak Ada Ujian Aktif" 
             description="Saat ini belum ada jadwal ujian yang terbuka untuk kelas Anda." 
@@ -196,11 +230,15 @@ const getInitials = (str) => {
 
         <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <GlassCard
-            v-for="exam in availableExams"
+            v-for="exam in visibleExams"
             :key="exam.id"
             padding="p-8"
             class="transition-all duration-300"
-            :class="isCompleted(exam.id) ? 'opacity-70' : 'group hover:border-primary-200 hover:ring-2 hover:ring-primary-50/50'"
+            :class="[
+              isCompleted(exam.id) ? 'opacity-70' :
+              examTimeStatus(exam) === 'belum_mulai' ? 'opacity-80 border-blue-100' :
+              'group hover:border-primary-200 hover:ring-2 hover:ring-primary-50/50'
+            ]"
           >
             <div class="flex h-full flex-col">
               <div class="mb-6 flex items-start justify-between">
@@ -216,9 +254,11 @@ const getInitials = (str) => {
                   class="rounded-lg px-3 py-1.5 text-[10px] font-black uppercase tracking-wide shadow-ios-sm"
                   :class="isCompleted(exam.id)
                     ? 'bg-slate-100 text-slate-500'
-                    : 'bg-emerald-100 text-emerald-700'"
+                    : examTimeStatus(exam) === 'belum_mulai'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'bg-emerald-100 text-emerald-700'"
                 >
-                  {{ isCompleted(exam.id) ? 'Selesai' : 'Terbuka' }}
+                  {{ isCompleted(exam.id) ? 'Selesai' : examTimeStatus(exam) === 'belum_mulai' ? 'Segera' : 'Terbuka' }}
                 </span>
               </div>
 
@@ -258,7 +298,20 @@ const getInitials = (str) => {
                 <CheckCircle2 :size="16" class="text-emerald-500" />
                 Sudah Dikerjakan
               </div>
-              <!-- Belum dikerjakan -->
+              <!-- Belum waktunya -->
+              <div
+                v-else-if="examTimeStatus(exam) === 'belum_mulai'"
+                class="mt-auto flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-blue-100 bg-blue-50 py-3 text-sm font-semibold text-blue-600 cursor-not-allowed select-none"
+              >
+                <div class="flex items-center gap-1.5">
+                  <Clock :size="15" />
+                  Ujian Belum Dimulai
+                </div>
+                <span v-if="formatCountdown(exam)" class="text-[11px] font-bold text-blue-400">
+                  Mulai dalam {{ formatCountdown(exam) }}
+                </span>
+              </div>
+              <!-- Belum dikerjakan dan waktu masih berlangsung -->
               <PrimaryButton
                 v-else
                 @click="startExam(exam.id)"

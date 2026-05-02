@@ -222,9 +222,11 @@ const isLastQuestion = () => currentIndex.value === questions.value.length - 1
               <img :src="currentQuestion.media_url" class="w-full h-auto max-h-72 object-contain bg-white" />
             </div>
 
-            <p class="text-base sm:text-lg text-slate-800 leading-relaxed">
-              {{ currentQuestion.konten }}
-            </p>
+            <!-- Question HTML content -->
+            <div
+              class="soal-konten text-base sm:text-lg text-slate-800 leading-relaxed"
+              v-html="currentQuestion.konten"
+            />
           </div>
 
           <!-- Options: Pilihan Ganda Biasa -->
@@ -399,3 +401,39 @@ const isLastQuestion = () => currentIndex.value === questions.value.length - 1
     </div>
   </div>
 </template>
+
+<style scoped>
+.soal-konten :deep(p) { margin: 0 0 0.3em; }
+.soal-konten :deep(h1) { font-size: 1.4em; font-weight: 800; margin: 0.4em 0 0.2em; }
+.soal-konten :deep(h2) { font-size: 1.2em; font-weight: 700; margin: 0.4em 0 0.2em; }
+.soal-konten :deep(h3) { font-size: 1.05em; font-weight: 700; margin: 0.3em 0 0.15em; }
+.soal-konten :deep(ul) { padding-left: 1.4em; list-style: disc; margin: 0.3em 0; }
+.soal-konten :deep(ol) { padding-left: 1.4em; list-style: decimal; margin: 0.3em 0; }
+.soal-konten :deep(li) { margin: 0.1em 0; }
+.soal-konten :deep(strong) { font-weight: 700; }
+.soal-konten :deep(em) { font-style: italic; }
+.soal-konten :deep(u) { text-decoration: underline; }
+.soal-konten :deep(s) { text-decoration: line-through; }
+.soal-konten :deep(blockquote) {
+  border-left: 3px solid #6d5ce7;
+  padding: 3px 12px;
+  margin: 0.4em 0;
+  color: #475569;
+  background: #f8f7ff;
+  border-radius: 0 6px 6px 0;
+}
+.soal-konten :deep(code) {
+  background: #f1f0fb;
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-family: monospace;
+  font-size: 0.88em;
+  color: #5b21b6;
+}
+.soal-konten :deep(hr) {
+  border: none;
+  border-top: 1.5px solid #e2e8f0;
+  margin: 0.6em 0;
+}
+.soal-konten :deep(mark) { border-radius: 3px; padding: 0 2px; }
+</style>

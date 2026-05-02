@@ -35,15 +35,57 @@ export function useExamEngine(examId, { onViolationSubmit, onTimerEnd } = {}) {
       if (row.key === 'nilai_max_pg') nilaiMaxPg.value = Number(row.value)
     })
 
-    // Fetch exam details (durasi, acak_soal, nama, mapel, kelas)
+    // Fetch exam details (durasi, acak_soal, nama, mapel, kelas, jadwal)
     const { data: ujianData, error: ujianError } = await supabase
       .from('ujian')
-      .select('durasi, acak_soal, nama, mapel(nama), kelas(nama)')
+      .select('durasi, acak_soal, nama, status, tanggal_mulai, tanggal_selesai, mapel(nama), kelas(nama)')
       .eq('id', examId)
       .single()
 
     if (ujianError) {
       Swal.fire('Gagal', 'Gagal memuat data ujian', 'error')
+      loading.value = false
+      return
+    }
+
+    // Validasi status & rentang waktu
+    if (ujianData.status !== 'aktif') {
+      Swal.fire({
+        icon: 'error',
+        title: 'Ujian Tidak Tersedia',
+        text: 'Ujian ini belum diaktifkan oleh guru.',
+        confirmButtonColor: '#4318ff',
+        confirmButtonText: 'Kembali'
+      })
+      loading.value = false
+      return
+    }
+
+    const now = new Date()
+    if (ujianData.tanggal_mulai && now < new Date(ujianData.tanggal_mulai)) {
+      const mulai = new Date(ujianData.tanggal_mulai).toLocaleString('id-ID', {
+        timeZone: 'Asia/Jakarta', day: 'numeric', month: 'short',
+        hour: '2-digit', minute: '2-digit', hour12: false
+      })
+      Swal.fire({
+        icon: 'info',
+        title: 'Ujian Belum Dimulai',
+        html: `Ujian ini baru dibuka pada <b>${mulai} WIB</b>.<br>Silakan kembali saat waktunya tiba.`,
+        confirmButtonColor: '#4318ff',
+        confirmButtonText: 'Kembali'
+      })
+      loading.value = false
+      return
+    }
+
+    if (ujianData.tanggal_selesai && now > new Date(ujianData.tanggal_selesai)) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Ujian Telah Berakhir',
+        text: 'Waktu pengerjaan ujian ini sudah habis.',
+        confirmButtonColor: '#4318ff',
+        confirmButtonText: 'Kembali'
+      })
       loading.value = false
       return
     }

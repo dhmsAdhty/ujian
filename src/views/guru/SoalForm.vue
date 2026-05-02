@@ -14,7 +14,7 @@ import {
   HelpCircle,
   FileText
 } from 'lucide-vue-next'
-import { GlassCard, PrimaryButton, FormInput, AppSelect } from '@/components/ui'
+import { GlassCard, PrimaryButton, FormInput, AppSelect, RichTextEditor } from '@/components/ui'
 import { uploadToCloudinary } from '@/services/cloudinary'
 import Swal from 'sweetalert2'
 
@@ -155,14 +155,22 @@ const uploadImage = async (file) => {
   return url
 }
 
+// Strip HTML tags to get plain text length for validation/title
+const stripHtml = (html) => {
+  const div = document.createElement('div')
+  div.innerHTML = html
+  return div.textContent || div.innerText || ''
+}
+
 const handleSave = async () => {
-  if (!form.value.konten || !form.value.mapel_id || !form.value.kelas_id) {
+  const plainText = stripHtml(form.value.konten || '').trim()
+  if (!plainText || !form.value.mapel_id || !form.value.kelas_id) {
     return Swal.fire('Peringatan', 'Mohon lengkapi pertanyaan, mata pelajaran, dan kelas', 'warning')
   }
 
   saving.value = true
   const payload = {
-    judul: form.value.konten.slice(0, 100),
+    judul: stripHtml(form.value.konten).slice(0, 100),
     konten: form.value.konten,
     tipe_soal: form.value.tipe_soal,
     mapel_id: form.value.mapel_id,
@@ -228,11 +236,10 @@ const handleSave = async () => {
 
             <div class="space-y-2">
               <label class="ml-1 text-sm font-semibold text-venus-700">Teks Pertanyaan *</label>
-              <textarea
+              <RichTextEditor
                 v-model="form.konten"
-                rows="5"
                 placeholder="Tuliskan pertanyaan di sini..."
-                class="form-input resize-none py-4"
+                minHeight="180px"
               />
             </div>
 
