@@ -64,11 +64,17 @@ async function getCurrentUserInfo() {
   }
 }
 
+let sessionErrorCount = 0
+const MAX_ERRORS_PER_SESSION = 10 // Maksimal error yang dikirim per sesi buka halaman
+
 /**
  * Fungsi utama: simpan error ke Supabase.
  * @param {Object} errorInfo
  */
 async function saveError({ errorType, message, stack, component, severity = 'error' }) {
+  // Cegah spam ke database jika terjadi infinite loop error di frontend
+  if (sessionErrorCount >= MAX_ERRORS_PER_SESSION) return
+  
   // Jangan simpan error dari development internal jika tidak perlu
   if (!message) return
   if (isThrottled(errorType, message)) return
@@ -76,14 +82,17 @@ async function saveError({ errorType, message, stack, component, severity = 'err
   // Jangan rekam error dari errorTracker itu sendiri
   if ((stack || '').includes('errorTracker.js')) return
 
+  sessionErrorCount++
+
   try {
     const url = typeof window !== 'undefined' ? window.location.href : ''
     const { userId, userName, userRole } = await getCurrentUserInfo()
 
     await supabase.from('system_errors').insert({
       error_type: errorType || 'UnknownError',
-      message: (message || 'No message').slice(0, 2000),
-      stack: stack ? stack.slice(0, 5000) : null,
+      // Potong pesan dan stack lebih pendek untuk menghemat kuota DB Free Tier
+      message: (message || 'No message').slice(0, 1000),
+      stack: stack ? stack.slice(0, 2000) : null,
       url: url.slice(0, 500),
       component: component || null,
       severity,
