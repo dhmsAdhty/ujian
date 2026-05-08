@@ -17,6 +17,7 @@ import {
 import { GlassCard, PrimaryButton, EmptyState } from '@/components/ui'
 import { supabase } from '@/services/supabase'
 import { useAuthStore } from '@/stores/auth'
+import Swal from 'sweetalert2'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -106,8 +107,30 @@ watch(
   }
 )
 
-const startExam = (id) => {
-  router.push(`/siswa/ujian/${id}`)
+const startExam = async (exam) => {
+  const { isConfirmed } = await Swal.fire({
+    title: exam.nama,
+    html: `
+      <div style="text-align:left;font-size:13px;line-height:1.8">
+        <p><b>Mata Pelajaran:</b> ${exam.mapel?.nama || '—'}</p>
+        <p><b>Durasi:</b> ${exam.durasi} menit</p>
+        <p><b>Jumlah Soal:</b> ${exam.jumlah_soal} soal</p>
+        <hr style="margin:10px 0;border-color:#e5e7eb">
+        <p style="color:#b45309"><b>⚠️ Perhatian:</b></p>
+        <ul style="padding-left:1.2em;color:#92400e">
+          <li>Dilarang berpindah tab atau menutup browser</li>
+          <li>Jawaban otomatis dikumpulkan saat waktu habis</li>
+          <li>Pastikan koneksi internet stabil</li>
+        </ul>
+      </div>`,
+    icon: 'info',
+    showCancelButton: true,
+    confirmButtonText: 'Mulai Sekarang',
+    cancelButtonText: 'Batal',
+    confirmButtonColor: '#4318ff',
+    focusConfirm: false
+  })
+  if (isConfirmed) router.push(`/siswa/ujian/${exam.id}`)
 }
 
 const formatDate = (isoStr) => {
@@ -314,7 +337,7 @@ const formatCountdown = (exam) => {
               <!-- Belum dikerjakan dan waktu masih berlangsung -->
               <PrimaryButton
                 v-else
-                @click="startExam(exam.id)"
+                @click="startExam(exam)"
                 class="w-full mt-auto group-hover:bg-primary-700"
               >
                 <Play :size="16" class="transition-transform group-hover:translate-x-1" /> Mulai Ujian

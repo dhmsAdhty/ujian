@@ -23,6 +23,8 @@ const selectedExam = ref('')
 const selectedMapel = ref('') // filter per mapel
 const searchQuery = ref('')
 const selectedResult = ref(null)
+const activeTab = ref('mengerjakan') // 'mengerjakan' | 'belum'
+const siswaDiKelas = ref([]) // daftar siswa untuk ujian yang dipilih
 
 // Daftar mapel unik dari ujian guru
 const mapelList = computed(() => {
@@ -121,7 +123,7 @@ const fetchData = async () => {
 
   const { data: examData } = await supabase
     .from('ujian')
-    .select('id, nama, mapel(nama), kelas(nama)')
+    .select('id, nama, mapel(nama), kelas(nama), kelas_id')
     .eq('guru_id', authStore.user.id)
     .order('tanggal_mulai', { ascending: false })
   exams.value = examData || []
@@ -152,12 +154,32 @@ const fetchData = async () => {
     })
   }
 
+  // Fix #8: Fetch siswa di kelas ujian yang dipilih
+  if (selectedExam.value) {
+    const ujian = exams.value.find(e => e.id === selectedExam.value)
+    if (ujian?.kelas_id) {
+      const { data: siswaData } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .eq('kelas_id', ujian.kelas_id)
+        .eq('role', 'siswa')
+      siswaDiKelas.value = siswaData || []
+    } else {
+      siswaDiKelas.value = []
+    }
+  } else {
+    siswaDiKelas.value = []
+  }
+
   loading.value = false
 }
 
 onMounted(fetchData)
 
-const onExamChange = () => fetchData()
+const onExamChange = () => {
+  activeTab.value = 'mengerjakan'
+  fetchData()
+}
 
 const onMapelChange = (mapel) => {
   selectedMapel.value = mapel
@@ -235,6 +257,12 @@ const resetSemua = async () => {
   Swal.fire({ icon: 'success', title: 'Semua jawaban direset', timer: 1500, showConfirmButton: false })
   fetchData()
 }
+
+// Fix #8: Siswa yang belum mengerjakan
+const submittedIds = computed(() => new Set(results.value.map(r => r.siswa_id)))
+const belumMengerjakan = computed(() =>
+  siswaDiKelas.value.filter(s => !submittedIds.value.has(s.id))
+)
 
 const openGradingModal = (result) => {
   selectedResult.value = result
@@ -377,6 +405,32 @@ const openGradingModal = (result) => {
       </div>
     </GlassCard>
 
+    <!-- Fix #8: Tab Mengerjakan / Belum Mengerjakan -->
+    <div v-if="selectedExam && siswaDiKelas.length > 0" class="flex items-center gap-2">
+      <button
+        @click="activeTab = 'mengerjakan'"
+        class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border transition-all"
+        :class="activeTab === 'mengerjakan' ? 'bg-primary-600 border-primary-600 text-white' : 'bg-white border-venus-200 text-venus-500 hover:border-primary-300'"
+      >
+        <CheckCircle2 :size="13" />
+        Sudah Mengerjakan
+        <span class="ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-black"
+          :class="activeTab === 'mengerjakan' ? 'bg-white/20 text-white' : 'bg-venus-100 text-venus-600'"
+        >{{ filteredResults.length }}</span>
+      </button>
+      <button
+        @click="activeTab = 'belum'"
+        class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border transition-all"
+        :class="activeTab === 'belum' ? 'bg-red-500 border-red-500 text-white' : 'bg-white border-venus-200 text-venus-500 hover:border-red-300'"
+      >
+        <Clock :size="13" />
+        Belum Mengerjakan
+        <span class="ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-black"
+          :class="activeTab === 'belum' ? 'bg-white/20 text-white' : 'bg-red-50 text-red-500'"
+        >{{ belumMengerjakan.length }}</span>
+      </button>
+    </div>
+
     <!-- Table -->
     <GlassCard padding="p-0" class="overflow-hidden">
       <div class="overflow-x-auto">
@@ -411,7 +465,7 @@ const openGradingModal = (result) => {
           </tbody>
 
           <!-- Data -->
-          <tbody v-else class="divide-y divide-venus-50">
+          <tbody v-else-if="activeTab === 'mengerjakan'" class="divide-y divide-venus-50">
             <tr v-for="res in filteredResults" :key="res.id" class="hover:bg-venus-50/40 transition-colors">
               <!-- Siswa -->
               <td class="px-6 py-4">
@@ -480,6 +534,34 @@ const openGradingModal = (result) => {
                   </button>
                 </div>
               </td>
+            </tr>
+          </tbody>
+          <!-- Tab: Belum Mengerjakan -->
+          <tbody v-else-if="activeTab === 'belum'" class="divide-y divide-venus-50">
+            <tr v-if="belumMengerjakan.length === 0">
+              <td colspan="6">
+                <EmptyState title="Semua Sudah Mengerjakan" description="Seluruh siswa di kelas ini sudah mengumpulkan jawaban." />
+              </td>
+            </tr>
+            <tr v-for="siswa in belumMengerjakan" :key="siswa.id" class="hover:bg-red-50/30 transition-colors">
+              <td class="px-6 py-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-lg bg-red-50 text-red-400 text-sm font-semibold flex items-center justify-center shrink-0">
+                    {{ siswa.full_name?.charAt(0) || '?' }}
+                  </div>
+                  <div>
+                    <p class="font-medium text-venus-800">{{ siswa.full_name || '—' }}</p>
+                    <p class="text-[11px] text-venus-400">{{ siswa.email || '' }}</p>
+                  </div>
+                </div>
+              </td>
+              <td colspan="4" class="px-6 py-4">
+                <span class="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-500">
+                  <Clock :size="12" />
+                  Belum mengumpulkan jawaban
+                </span>
+              </td>
+              <td class="px-6 py-4 text-right text-xs text-venus-400">—</td>
             </tr>
           </tbody>
         </table>

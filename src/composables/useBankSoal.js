@@ -33,7 +33,8 @@ export function useBankSoal() {
       .range(from, to)
       .order('created_at', { ascending: true })
 
-    if (search) query = query.ilike('judul', `%${search}%`)
+    // Cari di judul DAN konten agar soal lama (judul kosong) tetap ditemukan
+    if (search) query = query.or(`judul.ilike.%${search}%,konten.ilike.%${search}%`)
     if (tipe) query = query.eq('tipe_soal', tipe)
     if (mapelId) query = query.eq('mapel_id', mapelId)
     if (kelasId) query = query.eq('kelas_id', kelasId)

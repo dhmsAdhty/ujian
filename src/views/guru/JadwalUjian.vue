@@ -170,7 +170,20 @@ const openForm = async (ujian = null) => {
   showForm.value = true
 }
 
-const cancelForm = () => {
+const cancelForm = async () => {
+  const hasData = form.value.nama || selectedSoalIds.value.length > 0
+  if (hasData) {
+    const { isConfirmed } = await Swal.fire({
+      title: 'Batalkan perubahan?',
+      text: 'Data yang sudah diisi akan hilang.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, Batalkan',
+      cancelButtonText: 'Lanjut Edit',
+      confirmButtonColor: '#ef4444'
+    })
+    if (!isConfirmed) return
+  }
   showForm.value = false
   resetForm()
 }
@@ -195,7 +208,23 @@ const fetchData = async () => {
 
   mapels.value = mapelRes.data || []
   kelasList.value = kelasRes.data || []
-  ujianList.value = ujianRes.data || []
+
+  // Fix #6: Hitung jumlah soal per ujian
+  const ujianData = ujianRes.data || []
+  if (ujianData.length > 0) {
+    const { data: soalCounts } = await supabase
+      .from('ujian_soal')
+      .select('ujian_id')
+      .in('ujian_id', ujianData.map(u => u.id))
+    const countMap = {}
+    ;(soalCounts || []).forEach(r => {
+      countMap[r.ujian_id] = (countMap[r.ujian_id] || 0) + 1
+    })
+    ujianList.value = ujianData.map(u => ({ ...u, jumlah_soal: countMap[u.id] || 0 }))
+  } else {
+    ujianList.value = []
+  }
+
   loading.value = false
 }
 
@@ -565,6 +594,7 @@ const getEffectiveStatus = (ujian) => {
             <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Nama Ujian</th>
             <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Mapel</th>
             <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Kelas</th>
+            <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Soal</th>
             <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Durasi</th>
             <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Mulai</th>
             <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Status</th>
@@ -578,6 +608,11 @@ const getEffectiveStatus = (ujian) => {
             </td>
             <td class="px-6 py-4 text-venus-600">{{ ujian.mapel?.nama || '—' }}</td>
             <td class="px-6 py-4 text-venus-600">{{ ujian.kelas?.nama || '—' }}</td>
+            <td class="px-6 py-4">
+              <span class="inline-flex items-center gap-1 rounded-lg bg-venus-100 px-2 py-0.5 text-xs font-bold text-venus-600">
+                {{ ujian.jumlah_soal ?? '—' }}
+              </span>
+            </td>
             <td class="px-6 py-4">
               <div class="flex items-center gap-1 text-venus-600">
                 <Clock :size="13" />
