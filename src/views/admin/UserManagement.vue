@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { supabase } from '@/services/supabase'
 import {
   Users, Search, ChevronLeft, ChevronRight, UserPlus,
@@ -23,6 +23,29 @@ const sortOrder = ref('desc')
 const showUserModal = ref(false)
 const showImportModal = ref(false)
 const editingUser = ref(null)
+const selectedUsers = ref([])
+const isDeletingBulk = ref(false)
+
+const isAllSelected = computed(() => {
+  return users.value.length > 0 && selectedUsers.value.length === users.value.length
+})
+
+const toggleAll = (e) => {
+  if (e.target.checked) {
+    selectedUsers.value = users.value.map(u => u.id)
+  } else {
+    selectedUsers.value = []
+  }
+}
+
+const toggleSelect = (user) => {
+  const index = selectedUsers.value.indexOf(user.id)
+  if (index === -1) {
+    selectedUsers.value.push(user.id)
+  } else {
+    selectedUsers.value.splice(index, 1)
+  }
+}
 
 const fetchUsers = async () => {
   loading.value = true
@@ -41,8 +64,8 @@ const fetchUsers = async () => {
   loading.value = false
 }
 
-watch([searchQuery, roleFilter, sortBy, sortOrder, pageSize], () => { page.value = 1; fetchUsers() })
-watch(page, fetchUsers)
+watch([searchQuery, roleFilter, sortBy, sortOrder, pageSize], () => { page.value = 1; fetchUsers(); selectedUsers.value = [] })
+watch(page, () => { fetchUsers(); selectedUsers.value = [] })
 onMounted(fetchUsers)
 
 const toggleSort = (field) => {
@@ -52,6 +75,55 @@ const toggleSort = (field) => {
 
 const openAdd = () => { editingUser.value = null; showUserModal.value = true }
 const openEdit = (user) => { editingUser.value = user; showUserModal.value = true }
+
+const handleBulkDelete = async () => {
+  if (selectedUsers.value.length === 0) return
+
+  const result = await Swal.fire({
+    title: `Hapus ${selectedUsers.value.length} User?`,
+    text: 'User yang dipilih akan dihapus secara permanen dari sistem.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#e31a1a',
+    confirmButtonText: 'Ya, Hapus Semua',
+    cancelButtonText: 'Batal',
+  })
+
+  if (!result.isConfirmed) return
+
+  isDeletingBulk.value = true
+  Swal.fire({
+    title: 'Menghapus...',
+    text: 'Mohon tunggu, jangan tutup halaman ini.',
+    allowOutsideClick: false,
+    didOpen: () => { Swal.showLoading() }
+  })
+
+  let successCount = 0
+  let failCount = 0
+
+  for (const userId of selectedUsers.value) {
+    const { error } = await supabase.rpc('delete_user_by_id', { target_user_id: userId })
+    if (error) {
+      const { error: profileError } = await supabase.from('profiles').delete().eq('id', userId)
+      if (profileError) failCount++
+      else successCount++
+    } else {
+      successCount++
+    }
+  }
+
+  isDeletingBulk.value = false
+  selectedUsers.value = []
+
+  if (failCount > 0) {
+    Swal.fire('Selesai', `Berhasil menghapus ${successCount} user, Gagal menghapus ${failCount} user.`, 'warning')
+  } else {
+    Swal.fire({ icon: 'success', title: 'Berhasil dihapus', timer: 1500, showConfirmButton: false })
+  }
+  
+  fetchUsers()
+}
 
 const handleDelete = async (user) => {
   const result = await Swal.fire({
@@ -118,6 +190,16 @@ const avatarColor = (name) => {
       </div>
       <div class="flex flex-wrap gap-2">
         <button
+          v-if="selectedUsers.length > 0"
+          type="button"
+          class="pressable-soft flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 shadow-ios-sm transition-colors hover:bg-red-100"
+          @click="handleBulkDelete"
+          :disabled="isDeletingBulk"
+        >
+          <Trash2 :size="16" />
+          Hapus {{ selectedUsers.length }} Terpilih
+        </button>
+        <button
           type="button"
           class="pressable-soft flex items-center gap-2 rounded-xl border border-venus-200 bg-white px-4 py-2.5 text-sm font-semibold text-venus-700 shadow-ios-sm transition-colors hover:bg-venus-50"
           @click="showImportModal = true"
@@ -155,6 +237,9 @@ const avatarColor = (name) => {
               { value: 10, label: '10 / hal' },
               { value: 25, label: '25 / hal' },
               { value: 50, label: '50 / hal' },
+              { value: 100, label: '100 / hal' },
+              { value: 250, label: '250 / hal' },
+              { value: 500, label: '500 / hal' },
             ]"
             class="w-32"
           />
@@ -168,6 +253,14 @@ const avatarColor = (name) => {
         <table class="w-full border-collapse text-left">
           <thead>
             <tr class="border-b border-venus-100 bg-venus-50/60 text-[10px] font-black uppercase tracking-[2px] text-venus-400">
+              <th class="px-6 py-4 w-12 text-center">
+                <input
+                  type="checkbox"
+                  class="h-4 w-4 rounded border-venus-300 text-primary-600 focus:ring-primary-500"
+                  :checked="isAllSelected"
+                  @change="toggleAll"
+                />
+              </th>
               <th class="cursor-pointer px-6 py-4 hover:opacity-70" @click="toggleSort('full_name')">
                 <div class="flex items-center gap-1.5">Nama <ArrowUpDown :size="11" /></div>
               </th>
@@ -182,7 +275,7 @@ const avatarColor = (name) => {
 
           <tbody v-if="loading">
             <tr v-for="i in 5" :key="i" class="border-b border-venus-50">
-              <td v-for="j in 5" :key="j" class="px-6 py-5">
+              <td v-for="j in 6" :key="j" class="px-6 py-5">
                 <div class="h-3.5 animate-pulse rounded-full bg-venus-100" />
               </td>
             </tr>
@@ -190,14 +283,22 @@ const avatarColor = (name) => {
 
           <tbody v-else-if="users.length === 0">
             <tr>
-              <td colspan="5">
+              <td colspan="6">
                 <EmptyState title="User Tidak Ditemukan" description="Coba ubah kata kunci atau filter role." />
               </td>
             </tr>
           </tbody>
 
           <tbody v-else class="divide-y divide-venus-50">
-            <tr v-for="user in users" :key="user.id" class="group transition-colors hover:bg-venus-50/40">
+            <tr v-for="user in users" :key="user.id" class="group transition-colors hover:bg-venus-50/40" :class="{ 'bg-primary-50/30': selectedUsers.includes(user.id) }">
+              <td class="px-6 py-4 text-center">
+                <input
+                  type="checkbox"
+                  class="h-4 w-4 rounded border-venus-300 text-primary-600 focus:ring-primary-500"
+                  :checked="selectedUsers.includes(user.id)"
+                  @change="toggleSelect(user)"
+                />
+              </td>
               <td class="px-6 py-4">
                 <div class="flex items-center gap-3">
                   <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-black" :class="avatarColor(user.full_name)">
