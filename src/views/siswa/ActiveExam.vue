@@ -142,6 +142,14 @@ const isSelectedKompleks = (optionLabel) => {
 }
 
 const isLastQuestion = () => currentIndex.value === questions.value.length - 1
+
+// Render konten soal: deteksi plain text (soal lama) vs HTML Tiptap
+const renderKonten = (html) => {
+  if (!html) return ''
+  // Jika tidak ada tag HTML sama sekali, ini soal lama → konversi newline ke <br>
+  if (!html.includes('<')) return html.replace(/\n/g, '<br>')
+  return html
+}
 </script>
 
 <template>
@@ -225,7 +233,7 @@ const isLastQuestion = () => currentIndex.value === questions.value.length - 1
             <!-- Question HTML content -->
             <div
               class="soal-konten text-base sm:text-lg text-slate-800 leading-relaxed"
-              v-html="currentQuestion.konten"
+              v-html="renderKonten(currentQuestion.konten)"
             />
           </div>
 

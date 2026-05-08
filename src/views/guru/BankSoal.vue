@@ -68,6 +68,14 @@ const handleBulkDelete = async () => {
   if (success) fetchData()
 }
 
+// Strip HTML tags — konten dari rich text editor bisa mengandung HTML
+const stripHtml = (html) => {
+  if (!html) return ''
+  const div = document.createElement('div')
+  div.innerHTML = html
+  return div.textContent || div.innerText || ''
+}
+
 const tipeBadge = (tipe) => {
   if (tipe === 'pilihan_ganda') return { label: 'PG', cls: 'bg-orange-50 text-orange-600 ring-1 ring-orange-100' }
   if (tipe === 'pilihan_ganda_kompleks') return { label: 'PG Kompleks', cls: 'bg-purple-50 text-purple-600 ring-1 ring-purple-100' }
@@ -217,7 +225,7 @@ const tipeBadge = (tipe) => {
               </span>
             </td>
             <td class="max-w-xs px-6 py-4">
-              <p class="truncate font-medium text-venus-800">{{ soal.konten || soal.judul }}</p>
+              <p class="truncate font-medium text-venus-800">{{ stripHtml(soal.konten) || soal.judul }}</p>
             </td>
             <td class="px-6 py-4 text-venus-600">{{ soal.mapel?.nama || '—' }}</td>
             <td class="px-6 py-4 text-venus-600">{{ soal.kelas?.nama || '—' }}</td>

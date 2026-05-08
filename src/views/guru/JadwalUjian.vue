@@ -137,6 +137,14 @@ const goToStep2 = async () => {
   if (!form.value.nama || !form.value.mapel_id || !form.value.kelas_id || !form.value.tanggal_mulai) {
     return Swal.fire('Peringatan', 'Mohon lengkapi semua field wajib', 'warning')
   }
+  // Fix #5: tanggal_selesai wajib diisi agar ujian punya batas waktu
+  if (!form.value.tanggal_selesai) {
+    return Swal.fire('Peringatan', 'Tanggal selesai wajib diisi agar ujian memiliki batas waktu', 'warning')
+  }
+  // Fix #4: tanggal_selesai harus setelah tanggal_mulai
+  if (form.value.tanggal_selesai <= form.value.tanggal_mulai) {
+    return Swal.fire('Peringatan', 'Tanggal selesai harus setelah tanggal mulai', 'warning')
+  }
   await fetchBankSoal()
   formStep.value = 2
 }
@@ -366,7 +374,7 @@ const getEffectiveStatus = (ujian) => {
             <p v-else class="ml-1 text-[10px] text-venus-400">Waktu dalam zona WIB (UTC+7)</p>
           </div>
           <div class="space-y-1.5">
-            <label class="ml-1 text-[11px] font-black uppercase tracking-widest text-venus-400">Tanggal Selesai</label>
+            <label class="ml-1 text-[11px] font-black uppercase tracking-widest text-venus-400">Tanggal Selesai *</label>
             <input v-model="form.tanggal_selesai" type="datetime-local" class="form-input text-sm" />
             <p v-if="form.tanggal_selesai" class="ml-1 text-[10px] font-semibold text-primary-600">{{ previewWIB(form.tanggal_selesai) }}</p>
             <p v-else class="ml-1 text-[10px] text-venus-400">Waktu dalam zona WIB (UTC+7)</p>

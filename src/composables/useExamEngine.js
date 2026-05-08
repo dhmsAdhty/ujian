@@ -1,4 +1,5 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { supabase } from '@/services/supabase'
 import { useAuthStore } from '@/stores/auth'
 import { useExamCache } from '@/composables/useExamCache'
@@ -6,6 +7,7 @@ import Swal from 'sweetalert2'
 
 export function useExamEngine(examId, { onViolationSubmit, onTimerEnd } = {}) {
   const authStore = useAuthStore()
+  const router = useRouter()
   const questions = ref([])
   const currentIndex = ref(0)
   const answers = ref({})
@@ -50,14 +52,15 @@ export function useExamEngine(examId, { onViolationSubmit, onTimerEnd } = {}) {
 
     // Validasi status & rentang waktu
     if (ujianData.status !== 'aktif') {
-      Swal.fire({
+      await Swal.fire({
         icon: 'error',
         title: 'Ujian Tidak Tersedia',
         text: 'Ujian ini belum diaktifkan oleh guru.',
         confirmButtonColor: '#4318ff',
-        confirmButtonText: 'Kembali'
+        confirmButtonText: 'Kembali ke Dashboard'
       })
       loading.value = false
+      router.replace('/siswa')
       return
     }
 
@@ -67,26 +70,28 @@ export function useExamEngine(examId, { onViolationSubmit, onTimerEnd } = {}) {
         timeZone: 'Asia/Jakarta', day: 'numeric', month: 'short',
         hour: '2-digit', minute: '2-digit', hour12: false
       })
-      Swal.fire({
+      await Swal.fire({
         icon: 'info',
         title: 'Ujian Belum Dimulai',
         html: `Ujian ini baru dibuka pada <b>${mulai} WIB</b>.<br>Silakan kembali saat waktunya tiba.`,
         confirmButtonColor: '#4318ff',
-        confirmButtonText: 'Kembali'
+        confirmButtonText: 'Kembali ke Dashboard'
       })
       loading.value = false
+      router.replace('/siswa')
       return
     }
 
     if (ujianData.tanggal_selesai && now > new Date(ujianData.tanggal_selesai)) {
-      Swal.fire({
+      await Swal.fire({
         icon: 'warning',
         title: 'Ujian Telah Berakhir',
         text: 'Waktu pengerjaan ujian ini sudah habis.',
         confirmButtonColor: '#4318ff',
-        confirmButtonText: 'Kembali'
+        confirmButtonText: 'Kembali ke Dashboard'
       })
       loading.value = false
+      router.replace('/siswa')
       return
     }
 

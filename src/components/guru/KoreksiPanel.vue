@@ -206,6 +206,13 @@ const save = async () => {
     emit('saved')
   }
 }
+
+// Render konten soal: deteksi plain text (soal lama) vs HTML Tiptap
+const renderKonten = (html) => {
+  if (!html) return ''
+  if (!html.includes('<')) return html.replace(/\n/g, '<br>')
+  return html
+}
 </script>
 
 <template>
@@ -294,7 +301,7 @@ const save = async () => {
             <div v-if="soal.media_url" class="mb-3 rounded-xl overflow-hidden border border-slate-100 max-w-md">
               <img :src="soal.media_url" class="w-full h-auto max-h-72 object-contain bg-white" alt="Lampiran Soal" />
             </div>
-            <div class="soal-konten text-sm text-slate-700 leading-relaxed" v-html="soal.konten" />
+            <div class="soal-konten text-sm text-slate-700 leading-relaxed" v-html="renderKonten(soal.konten)" />
           </div>
         </div>
 
@@ -369,7 +376,7 @@ const save = async () => {
             <div
               v-if="soal.kunci_jawaban"
               class="soal-konten bg-amber-50 rounded-lg border border-amber-100 px-3 py-2.5 text-sm leading-relaxed text-amber-800"
-              v-html="soal.kunci_jawaban"
+              v-html="renderKonten(soal.kunci_jawaban)"
             />
             <div v-else class="bg-amber-50 rounded-lg border border-amber-100 px-3 py-2.5 text-sm text-slate-400 italic">
               Tidak ada pedoman jawaban.
