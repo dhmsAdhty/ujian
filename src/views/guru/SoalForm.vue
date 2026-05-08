@@ -25,6 +25,7 @@ const authStore = useAuthStore()
 const isEdit = computed(() => !!route.params.id)
 const loading = ref(false)
 const saving = ref(false)
+const uploadingMedia = ref(false)   // spinner khusus gambar soal utama
 const uploadingOptionIdx = ref(null) // track which option image is uploading
 const allowPgKompleks = ref(true) // state fitur PG Kompleks
 
@@ -133,10 +134,10 @@ const setTipe = (tipe) => {
 const handleFileUpload = async (event) => {
   const file = event.target.files[0]
   if (!file) return
-  loading.value = true
+  uploadingMedia.value = true
   const url = await uploadImage(file, 'soal-media')
   if (url) form.value.media_url = url
-  loading.value = false
+  uploadingMedia.value = false
 }
 
 // Upload gambar per opsi jawaban
@@ -246,7 +247,12 @@ const handleSave = async () => {
             <!-- Media soal -->
             <div class="space-y-3">
               <label class="ml-1 text-sm font-semibold text-venus-700">Gambar Soal (Opsional)</label>
-              <div v-if="form.media_url" class="relative h-48 w-full overflow-hidden rounded-2xl border border-venus-200/90">
+              <!-- Spinner saat upload gambar utama sedang berlangsung -->
+              <div v-if="uploadingMedia" class="flex h-48 w-full flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-primary-200 bg-primary-50/40">
+                <div class="h-8 w-8 animate-spin rounded-full border-2 border-primary-200 border-t-primary-600"></div>
+                <span class="text-sm font-semibold text-primary-500">Mengunggah gambar...</span>
+              </div>
+              <div v-else-if="form.media_url" class="relative h-48 w-full overflow-hidden rounded-2xl border border-venus-200/90">
                 <img :src="form.media_url" class="h-full w-full bg-venus-50 object-contain" />
                 <button
                   type="button"

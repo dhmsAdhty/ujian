@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter, useRoute } from 'vue-router'
 import { LogOut, Menu, X, Bell } from 'lucide-vue-next'
+import Swal from 'sweetalert2'
 
 const props = defineProps({
   menuItems: {
@@ -34,6 +35,17 @@ const initials = computed(() => {
 })
 
 const handleLogout = async () => {
+  const { isConfirmed } = await Swal.fire({
+    title: 'Keluar dari Aplikasi?',
+    text: 'Anda akan keluar dari sesi ini.',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Ya, Keluar',
+    cancelButtonText: 'Batal',
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#6b7280'
+  })
+  if (!isConfirmed) return
   await authStore.logout()
   router.push('/login')
 }
