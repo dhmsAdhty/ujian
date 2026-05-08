@@ -35,6 +35,7 @@ const router = createRouter({
         { path: 'aktivitas', name: 'admin-aktivitas', component: () => import('@/views/admin/AktivitasPengguna.vue') },
         { path: 'trash', name: 'admin-trash', component: () => import('@/views/admin/TrashSoal.vue') },
         { path: 'settings', name: 'admin-settings', component: () => import('@/views/admin/SettingsView.vue') },
+        { path: 'errors', name: 'admin-errors', component: () => import('@/views/admin/ErrorMonitor.vue') },
       ]
     },
     {
