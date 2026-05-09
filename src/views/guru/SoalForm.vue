@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { supabase } from '@/services/supabase'
 import { useAuthStore } from '@/stores/auth'
@@ -25,9 +25,12 @@ const authStore = useAuthStore()
 const isEdit = computed(() => !!route.params.id)
 const loading = ref(false)
 const saving = ref(false)
+const savingAndAdd = ref(false)
 const uploadingMedia = ref(false)   // spinner khusus gambar soal utama
 const uploadingOptionIdx = ref(null) // track which option image is uploading
 const allowPgKompleks = ref(true) // state fitur PG Kompleks
+const totalSoalKonteks = ref(0)
+const loadingTotal = ref(false)
 
 
 const form = ref({
@@ -163,13 +166,60 @@ const stripHtml = (html) => {
   return div.textContent || div.innerText || ''
 }
 
-const handleSave = async () => {
+const fetchTotalSoal = async () => {
+  if (!form.value.mapel_id) {
+    totalSoalKonteks.value = 0
+    return
+  }
+  loadingTotal.value = true
+  let query = supabase
+    .from('bank_soal')
+    .select('id', { count: 'exact', head: true })
+    .eq('mapel_id', form.value.mapel_id)
+    .eq('guru_id', authStore.user.id)
+
+  if (form.value.kelas_id) {
+    query = query.eq('kelas_id', form.value.kelas_id)
+  }
+
+  const { count, error } = await query
+  if (!error && count !== null) {
+    totalSoalKonteks.value = count
+  }
+  loadingTotal.value = false
+}
+
+watch([() => form.value.mapel_id, () => form.value.kelas_id], () => {
+  if (!isEdit.value) {
+    fetchTotalSoal()
+  }
+})
+
+const resetForm = () => {
+  form.value.konten = ''
+  form.value.media_url = ''
+  form.value.kunci_jawaban = ''
+  form.value.options = [
+    { text: '', image_url: '', is_correct: false, label: 'A' },
+    { text: '', image_url: '', is_correct: false, label: 'B' },
+    { text: '', image_url: '', is_correct: false, label: 'C' },
+    { text: '', image_url: '', is_correct: false, label: 'D' }
+  ]
+  
+  if (form.value.tipe_soal === 'pilihan_ganda') {
+    form.value.options[0].is_correct = true
+  }
+}
+
+const handleSave = async (addAnother = false) => {
   const plainText = stripHtml(form.value.konten || '').trim()
   if (!plainText || !form.value.mapel_id || !form.value.kelas_id) {
     return Swal.fire('Peringatan', 'Mohon lengkapi pertanyaan, mata pelajaran, dan kelas', 'warning')
   }
 
-  saving.value = true
+  if (addAnother) savingAndAdd.value = true
+  else saving.value = true
+
   const payload = {
     judul: stripHtml(form.value.konten).slice(0, 100),
     konten: form.value.konten,
@@ -190,10 +240,25 @@ const handleSave = async () => {
   if (error) {
     Swal.fire('Gagal Menyimpan', error.message, 'error')
   } else {
-    Swal.fire({ icon: 'success', title: 'Berhasil!', text: `Soal berhasil ${isEdit.value ? 'diperbarui' : 'ditambahkan'}.`, timer: 1500, showConfirmButton: false })
-    router.push('/guru/soal')
+    Swal.fire({
+      icon: 'success',
+      title: 'Berhasil!',
+      text: `Soal berhasil ${isEdit.value ? 'diperbarui' : 'ditambahkan'}.`,
+      timer: 1500,
+      showConfirmButton: false
+    })
+
+    if (addAnother && !isEdit.value) {
+      resetForm()
+      fetchTotalSoal()
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    } else {
+      router.push('/guru/soal')
+    }
   }
-  saving.value = false
+  
+  if (addAnother) savingAndAdd.value = false
+  else saving.value = false
 }
 </script>
 
@@ -213,13 +278,25 @@ const handleSave = async () => {
           <h1 class="text-3xl font-bold tracking-tight text-venus-900">
             {{ isEdit ? 'Edit Soal' : 'Buat Soal Baru' }}
           </h1>
-          <p class="mt-1 text-venus-500">Lengkapi pertanyaan dan kunci jawaban.</p>
+          <div class="mt-1 flex items-center gap-3">
+            <p class="text-venus-500">Lengkapi pertanyaan dan kunci jawaban.</p>
+            <div v-if="!isEdit && (form.mapel_id || form.kelas_id)" class="flex items-center gap-1.5 rounded-full bg-venus-100/80 px-3 py-1 text-xs font-semibold text-venus-700">
+              <span v-if="loadingTotal" class="h-3 w-3 animate-spin rounded-full border-2 border-venus-300 border-t-venus-600"></span>
+              <span v-else>{{ totalSoalKonteks }} Soal Tersimpan</span>
+            </div>
+          </div>
         </div>
       </div>
-      <PrimaryButton @click="handleSave" :loading="saving" class="min-w-[140px] shadow-primary-500/30">
-        <Save :size="18" />
-        Simpan Soal
-      </PrimaryButton>
+      <div class="flex items-center gap-3">
+        <PrimaryButton v-if="!isEdit" @click="handleSave(true)" :loading="savingAndAdd" variant="secondary" class="shadow-ios-sm">
+          <Plus :size="18" />
+          Simpan & Tambah Lagi
+        </PrimaryButton>
+        <PrimaryButton @click="handleSave(false)" :loading="saving" class="min-w-[140px] shadow-primary-500/30">
+          <Save :size="18" />
+          Simpan Soal
+        </PrimaryButton>
+      </div>
     </div>
 
     <div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
