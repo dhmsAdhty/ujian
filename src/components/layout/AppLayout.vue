@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useRouter, useRoute } from 'vue-router'
 import { LogOut, Menu, X, Bell } from 'lucide-vue-next'
 import Swal from 'sweetalert2'
+import WhatsNewModal from '@/components/layout/WhatsNewModal.vue'
 
 const props = defineProps({
   menuItems: {
@@ -202,6 +203,12 @@ const isActive = (path) => route.path === path
       class="fixed inset-0 z-40 bg-venus-900/20 backdrop-blur-[2px] lg:hidden"
       aria-hidden="true"
       @click="isSidebarOpen = false"
+    />
+
+    <!-- What's New Modal (For all roles) -->
+    <WhatsNewModal 
+      v-if="authStore.role" 
+      :role="authStore.role" 
     />
   </div>
 </template>
