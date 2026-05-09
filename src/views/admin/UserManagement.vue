@@ -53,7 +53,7 @@ const fetchUsers = async () => {
   const to = from + pageSize.value - 1
   let query = supabase
     .from('profiles')
-    .select('*', { count: 'exact' })
+    .select('*, kelas(nama)', { count: 'exact' })
     .range(from, to)
     .order(sortBy.value, { ascending: sortOrder.value === 'asc' })
   if (searchQuery.value) query = query.ilike('full_name', `%${searchQuery.value}%`)
@@ -266,6 +266,7 @@ const avatarColor = (name) => {
               </th>
               <th class="px-6 py-4">Email</th>
               <th class="px-6 py-4">Role</th>
+              <th class="px-6 py-4">Kelas</th>
               <th class="cursor-pointer px-6 py-4 hover:opacity-70" @click="toggleSort('last_login')">
                 <div class="flex items-center gap-1.5">Login Terakhir <ArrowUpDown :size="11" /></div>
               </th>
@@ -275,7 +276,7 @@ const avatarColor = (name) => {
 
           <tbody v-if="loading">
             <tr v-for="i in 5" :key="i" class="border-b border-venus-50">
-              <td v-for="j in 6" :key="j" class="px-6 py-5">
+              <td v-for="j in 7" :key="j" class="px-6 py-5">
                 <div class="h-3.5 animate-pulse rounded-full bg-venus-100" />
               </td>
             </tr>
@@ -283,7 +284,7 @@ const avatarColor = (name) => {
 
           <tbody v-else-if="users.length === 0">
             <tr>
-              <td colspan="6">
+              <td colspan="7">
                 <EmptyState title="User Tidak Ditemukan" description="Coba ubah kata kunci atau filter role." />
               </td>
             </tr>
@@ -318,6 +319,12 @@ const avatarColor = (name) => {
                   <component :is="roleBadge(user.role).icon" :size="11" />
                   {{ user.role }}
                 </span>
+              </td>
+              <td class="px-6 py-4">
+                <span v-if="user.kelas?.nama" class="inline-flex items-center rounded-lg bg-indigo-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-indigo-600">
+                  {{ user.kelas.nama }}
+                </span>
+                <span v-else class="text-xs text-venus-400">—</span>
               </td>
               <td class="px-6 py-4">
                 <div class="flex items-center gap-1.5 text-sm text-venus-400">
