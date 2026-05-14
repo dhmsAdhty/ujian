@@ -50,6 +50,7 @@ const router = createRouter({
         { path: 'soal/edit/:id', name: 'guru-soal-edit', component: () => import('@/views/guru/SoalForm.vue') },
         { path: 'nilai', name: 'guru-nilai', component: () => import('@/views/guru/RekapNilai.vue') },
         { path: 'jadwal', name: 'guru-jadwal', component: () => import('@/views/guru/JadwalUjian.vue') },
+        { path: 'monitoring', name: 'guru-monitoring', component: () => import('@/views/guru/MonitoringPelanggaran.vue') },
       ]
     },
     {

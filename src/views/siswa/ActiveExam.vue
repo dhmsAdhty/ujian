@@ -45,8 +45,18 @@ function enterFullscreen() {
 }
 
 function exitFullscreen() {
-  if (document.exitFullscreen) document.exitFullscreen()
-  else if (document.webkitExitFullscreen) document.webkitExitFullscreen()
+  try {
+    // Hanya eksekusi jika sedang dalam mode fullscreen
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {}) // Tangkap error async jika dokumen tidak aktif
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen()
+      }
+    }
+  } catch (err) {
+    // Abaikan jika gagal (misal: dokumen sudah tidak aktif saat tab ditutup)
+  }
 }
 
 // Blokir tombol back browser selama ujian berlangsung

@@ -1,12 +1,13 @@
 <script setup>
-import { LayoutDashboard, FileStack, GraduationCap, ClipboardList } from 'lucide-vue-next'
+import { LayoutDashboard, FileStack, GraduationCap, ClipboardList, ShieldAlert } from 'lucide-vue-next'
 import AppLayout from '@/components/layout/AppLayout.vue'
 
 const menuItems = [
   { name: 'Dashboard', icon: LayoutDashboard, path: '/guru' },
   { name: 'Bank Soal', icon: FileStack, path: '/guru/soal' },
   { name: 'Jadwal Ujian', icon: ClipboardList, path: '/guru/jadwal' },
-  { name: 'Rekap Nilai', icon: GraduationCap, path: '/guru/nilai' }
+  { name: 'Rekap Nilai', icon: GraduationCap, path: '/guru/nilai' },
+  { name: 'Monitoring', icon: ShieldAlert, path: '/guru/monitoring' }
 ]
 </script>
 
