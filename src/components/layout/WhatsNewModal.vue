@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { Sparkles, X, CheckCircle, Trash2, Activity, PlusCircle, PenTool } from 'lucide-vue-next'
+import { Sparkles, X, CheckCircle, Trash2, Activity, PlusCircle, PenTool, ShieldAlert, MonitorCheck } from 'lucide-vue-next'
 import { PrimaryButton } from '@/components/ui'
 
 const props = defineProps({
@@ -11,7 +11,7 @@ const props = defineProps({
 })
 
 const isVisible = ref(false)
-const VERSION_KEY = 'cbt_ats_whatsnew_v1.1' // Update this key to show the modal again in the future
+const VERSION_KEY = 'cbt_ats_whatsnew_v1.2' // Updated to show new Monitoring & Stability features
 
 onMounted(() => {
   const hasSeen = localStorage.getItem(VERSION_KEY)
@@ -44,6 +44,13 @@ const updates = computed(() => {
         description: 'Kini Anda dapat memilih banyak pengguna sekaligus dan menghapusnya dalam satu klik. Lebih efisien mengelola data siswa dan guru.',
         icon: Trash2,
         colorClass: 'text-amber-500 bg-amber-50',
+      },
+      {
+        id: 3,
+        title: 'Stabilitas Log Error',
+        description: 'Perbaikan pada sistem monitoring yang kini menyaring error sampah "Document not active", sehingga log Anda lebih bersih dan akurat.',
+        icon: MonitorCheck,
+        colorClass: 'text-indigo-500 bg-indigo-50',
       }
     ]
   }
@@ -63,6 +70,13 @@ const updates = computed(() => {
         description: 'Ketahui langsung berapa banyak soal yang sudah Anda buat untuk Mata Pelajaran dan Kelas tertentu langsung dari form pembuatan soal.',
         icon: PenTool,
         colorClass: 'text-blue-500 bg-blue-50',
+      },
+      {
+        id: 3,
+        title: 'Monitoring Pelanggaran Baru',
+        description: 'Pantau kejujuran siswa dan progres pengerjaan soal secara real-time melalui menu Monitoring yang baru ditambahkan.',
+        icon: ShieldAlert,
+        colorClass: 'text-rose-500 bg-rose-50',
       }
     ]
   }
@@ -118,7 +132,7 @@ const updates = computed(() => {
               </div>
               <div>
                 <h2 class="text-xl font-bold tracking-tight text-venus-900">Apa yang Baru?</h2>
-                <p class="text-sm font-medium text-venus-500">Pembaruan fitur versi 1.1</p>
+                <p class="text-sm font-medium text-venus-500">Pembaruan fitur versi 1.2</p>
               </div>
             </div>
             <button 
