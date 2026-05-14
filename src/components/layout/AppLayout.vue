@@ -5,6 +5,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { LogOut, Menu, X, Bell } from 'lucide-vue-next'
 import Swal from 'sweetalert2'
 import WhatsNewModal from '@/components/layout/WhatsNewModal.vue'
+import { AppTour } from '@/components/ui'
 
 const props = defineProps({
   menuItems: {
@@ -23,6 +24,20 @@ const router = useRouter()
 const route = useRoute()
 
 const isSidebarOpen = ref(false)
+const isTourActive = ref(false)
+
+const tourSteps = computed(() => {
+  if (authStore.role === 'guru') {
+    return [
+      {
+        target: '#sidebar-menu-monitoring',
+        title: 'Menu Monitoring Baru',
+        content: 'Klik di sini untuk membuka dashboard monitoring pelanggaran dan progres siswa secara langsung.'
+      }
+    ]
+  }
+  return []
+})
 
 const displayName = computed(() => authStore.profile?.full_name || props.brandTitle)
 const displayEmail = computed(() => authStore.user?.email || '—')
@@ -95,6 +110,7 @@ const isActive = (path) => route.path === path
             v-for="item in menuItems"
             :key="item.name"
             :to="item.path"
+            :id="`sidebar-menu-${item.name.toLowerCase().replace(/\s+/g, '-')}`"
             class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-[background-color,color] duration-200 ease-ios focus-visible:outline-none"
             :class="
               isActive(item.path)
@@ -209,6 +225,14 @@ const isActive = (path) => route.path === path
     <WhatsNewModal 
       v-if="authStore.role" 
       :role="authStore.role" 
+      @start-tour="isTourActive = true"
+    />
+
+    <!-- Guided Tour (Spotlight) -->
+    <AppTour 
+      v-if="tourSteps.length > 0"
+      v-model="isTourActive"
+      :steps="tourSteps"
     />
   </div>
 </template>
