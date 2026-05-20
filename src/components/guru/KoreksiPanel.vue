@@ -33,15 +33,28 @@ watch(() => props.result, async (val) => {
   essayMarks.value = {}
   loading.value = true
 
-  // Fetch nilai_max_pg & jumlah_soal_essay dari app_settings
+  // Fetch settings dinamis (peka terhadap override per kelas)
+  const keys = ['nilai_max_pg', 'jumlah_soal_essay']
+  const kelasId = val.ujian?.kelas_id
+  if (kelasId) {
+    keys.push(`nilai_max_pg_kelas_${kelasId}`)
+  }
+
   const { data: settingData } = await supabase
     .from('app_settings')
     .select('key, value')
-    .in('key', ['nilai_max_pg', 'jumlah_soal_essay'])
+    .in('key', keys)
+
+  let globalMaxPg = 70
+  let overrideMaxPg = null
+
   ;(settingData || []).forEach(row => {
-    if (row.key === 'nilai_max_pg') nilaiMaxPg.value = Number(row.value)
+    if (row.key === 'nilai_max_pg') globalMaxPg = Number(row.value)
+    if (row.key === `nilai_max_pg_kelas_${kelasId}`) overrideMaxPg = row.value ? Number(row.value) : null
     if (row.key === 'jumlah_soal_essay') jumlahSoalEssay.value = Number(row.value)
   })
+
+  nilaiMaxPg.value = overrideMaxPg !== null ? overrideMaxPg : globalMaxPg
 
   const { data } = await supabase
     .from('ujian_soal')

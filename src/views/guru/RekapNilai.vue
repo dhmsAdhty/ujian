@@ -7,9 +7,10 @@ import { CanvasRenderer } from 'echarts/renderers'
 import VChart from 'vue-echarts'
 import { supabase } from '@/services/supabase'
 import { useAuthStore } from '@/stores/auth'
-import { Search, FileSpreadsheet, CheckCircle2, Clock, Edit3, RotateCcw } from 'lucide-vue-next'
+import { Search, FileSpreadsheet, CheckCircle2, Clock, Edit3, RotateCcw, Eye } from 'lucide-vue-next'
 import { GlassCard, PrimaryButton, EmptyState, AppSelect } from '@/components/ui'
 import KoreksiPanel from '@/components/guru/KoreksiPanel.vue'
+import PreviewExamModal from '@/components/guru/PreviewExamModal.vue'
 import * as XLSX from 'xlsx'
 import Swal from 'sweetalert2'
 
@@ -25,6 +26,7 @@ const searchQuery = ref('')
 const selectedResult = ref(null)
 const activeTab = ref('mengerjakan') // 'mengerjakan' | 'belum'
 const siswaDiKelas = ref([]) // daftar siswa untuk ujian yang dipilih
+const isPreviewOpen = ref(false)
 
 // Daftar mapel unik dari ujian guru
 const mapelList = computed(() => {
@@ -59,7 +61,7 @@ const filteredResults = computed(() => {
 const stats = computed(() => {
   const data = filteredResults.value
   if (!data.length) return { total: 0, avgNilai: '—', lulus: 0, belumDinilai: 0 }
-  const nilaiList = data.filter(r => r.pg_score != null).map(r => r.pg_score)
+  const nilaiList = data.filter(r => r.pg_score != null && r.essayStatus !== 'pending').map(r => r.pg_score)
   const avgNilai = nilaiList.length ? Math.round(nilaiList.reduce((a, b) => a + b, 0) / nilaiList.length) : '—'
   const lulus = nilaiList.filter(s => s >= 70).length
   const belumDinilai = data.filter(r => r.essayStatus === 'pending').length
@@ -71,7 +73,7 @@ const stats = computed(() => {
 const statsPerMapel = computed(() => {
   const map = {}
   results.value.forEach(r => {
-    if (r.pg_score == null) return
+    if (r.pg_score == null || r.essayStatus === 'pending') return
     const nama = r.ujian?.mapel?.nama || '—'
     if (!map[nama]) map[nama] = { nama, values: [], siswa: [] }
     map[nama].values.push(Number(r.pg_score))
@@ -90,7 +92,7 @@ const statsPerMapel = computed(() => {
 
 // Pie chart: distribusi nilai semua mapel (A/B/C/D)
 const chartPerMapel = computed(() => {
-  const data = results.value.filter(r => r.pg_score != null)
+  const data = results.value.filter(r => r.pg_score != null && r.essayStatus !== 'pending')
   if (!data.length) return null
 
   const grades = { 'A (≥90)': 0, 'B (75–89)': 0, 'C (60–74)': 0, 'D (<60)': 0 }
@@ -118,6 +120,19 @@ const chartPerMapel = computed(() => {
   }
 })
 
+const getEssayTotal = (res) => {
+  if (!res.essay_score || typeof res.essay_score !== 'object') return 0
+  return Object.values(res.essay_score).reduce((sum, v) => sum + Number(v || 0), 0)
+}
+
+const getPgOnlyScore = (res) => {
+  if (res.essayStatus === 'graded') {
+    const essayTotal = getEssayTotal(res)
+    return parseFloat(Math.max(0, (res.pg_score ?? 0) - essayTotal).toFixed(2))
+  }
+  return res.pg_score ?? 0
+}
+
 const fetchData = async () => {
   loading.value = true
 
@@ -128,15 +143,32 @@ const fetchData = async () => {
     .order('tanggal_mulai', { ascending: false })
   exams.value = examData || []
 
+  const examIds = exams.value.map(e => e.id)
+  let examSoalData = []
+  if (examIds.length > 0) {
+    const { data: soalData } = await supabase
+      .from('ujian_soal')
+      .select('ujian_id, bank_soal(tipe_soal)')
+      .in('ujian_id', examIds)
+    examSoalData = soalData || []
+  }
+
+  const hasEssayMap = {}
+  examSoalData.forEach(row => {
+    if (row.bank_soal?.tipe_soal === 'essay') {
+      hasEssayMap[row.ujian_id] = true
+    }
+  })
+
   let query = supabase
     .from('exam_results')
-    .select('*, profiles!exam_results_siswa_id_fkey(full_name, email), ujian(nama, mapel(nama), kelas(nama))')
+    .select('*, profiles!exam_results_siswa_id_fkey(full_name, email), ujian(id, nama, kelas_id, mapel(nama), kelas(nama))')
     .order('submitted_at', { ascending: false })
 
   if (selectedExam.value) {
     query = query.eq('exam_id', selectedExam.value)
   } else if (exams.value.length > 0) {
-    query = query.in('exam_id', exams.value.map(e => e.id))
+    query = query.in('exam_id', examIds)
   }
 
   const { data: resultData, error } = await query
@@ -147,14 +179,23 @@ const fetchData = async () => {
     results.value = (resultData || []).map(r => {
       const essayScoreObj = r.essay_score && typeof r.essay_score === 'object' ? r.essay_score : null
       const isGraded = essayScoreObj && Object.keys(essayScoreObj).length > 0
+      const hasEssay = !!hasEssayMap[r.exam_id]
+
+      let status = 'pending'
+      if (!hasEssay) {
+        status = 'no_essay'
+      } else if (isGraded) {
+        status = 'graded'
+      }
+
       return {
         ...r,
-        essayStatus: isGraded ? 'graded' : 'pending'
+        essayStatus: status
       }
     })
   }
 
-  // Fix #8: Fetch siswa di kelas ujian yang dipilih
+  // Fetch siswa di kelas ujian yang dipilih
   if (selectedExam.value) {
     const ujian = exams.value.find(e => e.id === selectedExam.value)
     if (ujian?.kelas_id) {
@@ -289,6 +330,14 @@ const openGradingModal = (result) => {
         <p class="text-sm text-venus-500 mt-0.5">Pantau hasil ujian dan koreksi jawaban essay siswa.</p>
       </div>
       <div class="flex items-center gap-2">
+        <button
+          v-if="selectedExam"
+          @click="isPreviewOpen = true"
+          class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-amber-200 text-amber-600 text-sm font-semibold hover:bg-amber-50 bg-white transition-colors"
+        >
+          <Eye :size="15" />
+          Preview POV Siswa
+        </button>
         <button
           v-if="selectedExam && filteredResults.length > 0"
           @click="resetSemua"
@@ -488,18 +537,34 @@ const openGradingModal = (result) => {
 
               <!-- Nilai Akhir -->
               <td class="px-6 py-4 text-center">
-                <span
-                  class="inline-block px-2.5 py-1 rounded-lg text-sm font-semibold"
-                  :class="res.pg_score == null ? 'text-venus-400' :
-                    res.pg_score >= 70 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'"
-                >
-                  {{ res.pg_score ?? '—' }}
-                </span>
+                <div class="flex flex-col items-center">
+                  <span
+                    class="inline-block px-2.5 py-1 rounded-lg text-sm font-bold"
+                    :class="res.pg_score == null ? 'text-venus-400' :
+                      res.pg_score >= 70 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'"
+                  >
+                    {{ res.pg_score ?? '—' }}
+                  </span>
+                  <!-- Rincian PG & Essay -->
+                  <span v-if="res.pg_score != null && res.essayStatus !== 'no_essay'" class="text-[10px] text-venus-400 mt-1">
+                    PG: {{ getPgOnlyScore(res) }} | Essay: {{ getEssayTotal(res) }}
+                  </span>
+                  <span v-else-if="res.pg_score != null && res.essayStatus === 'no_essay'" class="text-[10px] text-venus-400 mt-1">
+                    Murni PG
+                  </span>
+                </div>
               </td>
 
               <!-- Essay -->
               <td class="px-6 py-4 text-center">
                 <span
+                  v-if="res.essayStatus === 'no_essay'"
+                  class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-50 text-slate-400"
+                >
+                  Tidak Ada Essay
+                </span>
+                <span
+                  v-else
                   class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold"
                   :class="res.essayStatus === 'graded' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-600'"
                 >
@@ -568,5 +633,14 @@ const openGradingModal = (result) => {
       </div>
     </GlassCard>
     </template>
+
+    <!-- Preview Modal POV Siswa -->
+    <PreviewExamModal
+      v-if="selectedExam"
+      :isOpen="isPreviewOpen"
+      :ujianId="selectedExam"
+      @close="isPreviewOpen = false"
+    />
+
   </div>
 </template>

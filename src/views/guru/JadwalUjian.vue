@@ -4,9 +4,10 @@ import { supabase } from '@/services/supabase'
 import { useAuthStore } from '@/stores/auth'
 import {
   Plus, Clock, ChevronRight, Pencil, Trash2, Save,
-  Shuffle, List, CheckSquare, Square, Search, X
+  Shuffle, List, CheckSquare, Square, Search, X, Eye
 } from 'lucide-vue-next'
 import { GlassCard, PrimaryButton, FormInput, AppSelect, EmptyState } from '@/components/ui'
+import PreviewExamModal from '@/components/guru/PreviewExamModal.vue'
 import Swal from 'sweetalert2'
 
 const authStore = useAuthStore()
@@ -16,6 +17,13 @@ const ujianList = ref([])
 const showForm = ref(false)
 const editingId = ref(null)
 const formStep = ref(1) // 1 = setting, 2 = pilih soal
+
+const isPreviewOpen = ref(false)
+const previewUjianId = ref('')
+const openPreview = (id) => {
+  previewUjianId.value = id
+  isPreviewOpen.value = true
+}
 
 const mapels = ref([])
 const kelasList = ref([])
@@ -632,6 +640,15 @@ const getEffectiveStatus = (ujian) => {
               <div class="flex items-center justify-end gap-2">
                 <button
                   type="button"
+                  @click="openPreview(ujian.id)"
+                  class="pressable-soft rounded-lg border border-venus-200/80 bg-white p-1.5 text-venus-400 shadow-ios-sm hover:text-amber-500 active:opacity-70"
+                  title="Preview POV Siswa"
+                  aria-label="Preview POV Siswa"
+                >
+                  <Eye :size="15" />
+                </button>
+                <button
+                  type="button"
                   @click="openForm(ujian)"
                   class="pressable-soft rounded-lg border border-venus-200/80 bg-white p-1.5 text-venus-400 shadow-ios-sm hover:text-primary-600 active:opacity-70"
                   aria-label="Edit ujian"
@@ -652,6 +669,13 @@ const getEffectiveStatus = (ujian) => {
         </tbody>
       </table>
     </GlassCard>
+
+    <!-- Preview Modal POV Siswa -->
+    <PreviewExamModal
+      :isOpen="isPreviewOpen"
+      :ujianId="previewUjianId"
+      @close="isPreviewOpen = false"
+    />
 
   </div>
 </template>
