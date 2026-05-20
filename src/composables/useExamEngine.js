@@ -167,6 +167,15 @@ export function useExamEngine(examId, { onViolationSubmit, onTimerEnd } = {}) {
     clearInterval(interval.value)
     isFinished.value = true
 
+    // Re-fetch nilai_max_pg dari DB saat submit agar selalu pakai setting terbaru,
+    // tidak bergantung pada nilai yang di-cache saat loadExam()
+    const { data: freshSetting } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'nilai_max_pg')
+      .maybeSingle()
+    if (freshSetting?.value) nilaiMaxPg.value = Number(freshSetting.value)
+
     // Hitung skor otomatis untuk pilihan ganda
     let pgCorrect = 0
     questions.value.forEach(q => {

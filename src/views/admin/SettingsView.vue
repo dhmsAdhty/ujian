@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { supabase } from '@/services/supabase'
-import { Settings, ShieldAlert, Save, ChevronDown, Calculator } from 'lucide-vue-next'
+import { Settings, ShieldAlert, Save, ChevronDown, Calculator, ScanSearch, RefreshCw, AlertTriangle, CheckCircle2 } from 'lucide-vue-next'
 import Swal from 'sweetalert2'
 
 const loading = ref(true)
@@ -107,7 +107,115 @@ const saveSection = async (section) => {
   }
 }
 
-onMounted(fetchSettings)
+// ─── AUDIT & HITUNG ULANG NILAI ───
+const auditLoading = ref(false)
+const auditDone = ref(false)
+const auditResults = ref([])
+const auditMapelOptions = ref([])
+const auditKelasOptions = ref([])
+const auditSelectedMapel = ref([])
+const auditSelectedKelas = ref([])
+const pgCountCache = ref({})
+
+const selectedAuditCount = computed(() => auditResults.value.filter(r => r.selected).length)
+
+const fetchAuditMeta = async () => {
+  const [mRes, kRes] = await Promise.all([
+    supabase.from('mapel').select('id, nama').order('nama'),
+    supabase.from('kelas').select('id, nama').order('nama')
+  ])
+  auditMapelOptions.value = mRes.data || []
+  auditKelasOptions.value = kRes.data || []
+}
+
+const getPgCount = async (examId) => {
+  if (pgCountCache.value[examId] !== undefined) return pgCountCache.value[examId]
+  const { data } = await supabase
+    .from('ujian_soal')
+    .select('bank_soal(tipe_soal)')
+    .eq('ujian_id', examId)
+  const count = (data || []).filter(s => s.bank_soal?.tipe_soal !== 'essay').length
+  pgCountCache.value[examId] = count
+  return count
+}
+
+const runAudit = async () => {
+  auditLoading.value = true
+  auditDone.value = false
+  auditResults.value = []
+  pgCountCache.value = {}
+
+  const { data, error } = await supabase
+    .from('exam_results')
+    .select('id, exam_id, pg_score, pg_correct, submitted_at, profiles!exam_results_siswa_id_fkey(full_name, email), ujian(id, nama, mapel(id, nama), kelas(id, nama))')
+    .not('submitted_at', 'is', null)
+    .not('pg_correct', 'is', null)
+
+  if (error) {
+    Swal.fire('Error', 'Gagal memuat data: ' + error.message, 'error')
+    auditLoading.value = false
+    return
+  }
+
+  let filtered = data || []
+  if (auditSelectedMapel.value.length > 0)
+    filtered = filtered.filter(r => auditSelectedMapel.value.includes(r.ujian?.mapel?.id))
+  if (auditSelectedKelas.value.length > 0)
+    filtered = filtered.filter(r => auditSelectedKelas.value.includes(r.ujian?.kelas?.id))
+
+  const affected = []
+  for (const result of filtered) {
+    const totalPg = await getPgCount(result.exam_id)
+    if (totalPg === 0) continue
+    const expectedScore = parseFloat((result.pg_correct / totalPg * nilaiMaxPg.value).toFixed(2))
+    const currentScore = parseFloat((result.pg_score ?? 0).toFixed(2))
+    if (Math.abs(expectedScore - currentScore) > 0.01) {
+      affected.push({ ...result, totalPg, expectedScore, currentScore, diff: parseFloat((expectedScore - currentScore).toFixed(2)), selected: true })
+    }
+  }
+
+  auditResults.value = affected
+  auditDone.value = true
+  auditLoading.value = false
+}
+
+const toggleSelectAll = (val) => auditResults.value.forEach(r => (r.selected = val))
+
+const applyRecalculate = async () => {
+  const toUpdate = auditResults.value.filter(r => r.selected)
+  if (!toUpdate.length) return Swal.fire('Info', 'Tidak ada data yang dipilih.', 'info')
+
+  const { isConfirmed } = await Swal.fire({
+    title: 'Terapkan Hitung Ulang?',
+    html: `Nilai PG dari <strong>${toUpdate.length} hasil ujian</strong> akan diperbarui menggunakan rumus baru (×${nilaiMaxPg.value}).`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Ya, Terapkan',
+    cancelButtonText: 'Batal',
+    confirmButtonColor: '#4318ff'
+  })
+  if (!isConfirmed) return
+
+  auditLoading.value = true
+  let ok = 0, fail = 0
+  for (const r of toUpdate) {
+    const { error } = await supabase.from('exam_results').update({ pg_score: r.expectedScore }).eq('id', r.id)
+    error ? fail++ : ok++
+  }
+  auditLoading.value = false
+
+  if (fail === 0) {
+    await Swal.fire({ icon: 'success', title: `${ok} nilai berhasil diperbarui!`, timer: 2000, showConfirmButton: false })
+  } else {
+    await Swal.fire('Selesai', `${ok} berhasil, ${fail} gagal.`, 'warning')
+  }
+  runAudit()
+}
+
+onMounted(() => {
+  fetchSettings()
+  fetchAuditMeta()
+})
 </script>
 
 <template>
@@ -401,6 +509,189 @@ onMounted(fetchSettings)
               <Save :size="14" /> {{ saving ? 'Menyimpan...' : 'Simpan' }}
             </button>
           </div>
+        </div>
+      </div>
+
+      <!-- Accordion: Audit & Hitung Ulang Nilai -->
+      <div class="rounded-2xl border border-venus-100 bg-white overflow-hidden shadow-sm">
+        <button
+          @click="toggle('audit')"
+          class="w-full flex items-center justify-between px-5 py-4 hover:bg-venus-50/50 transition-colors"
+        >
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-500 flex items-center justify-center shrink-0">
+              <ScanSearch :size="16" />
+            </div>
+            <div class="text-left">
+              <p class="text-sm font-semibold text-venus-800">Audit &amp; Hitung Ulang Nilai</p>
+              <p class="text-xs text-venus-400">Deteksi dan perbaiki nilai yang dihitung dengan pengaturan lama</p>
+            </div>
+          </div>
+          <ChevronDown
+            :size="18"
+            class="text-venus-400 transition-transform duration-200"
+            :class="openSection === 'audit' ? 'rotate-180' : ''"
+          />
+        </button>
+
+        <div v-show="openSection === 'audit'" class="px-5 pb-5 border-t border-venus-100 pt-4 space-y-4">
+
+          <!-- Warning banner -->
+          <div class="flex gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
+            <AlertTriangle :size="16" class="text-amber-500 shrink-0 mt-0.5" />
+            <div>
+              <p class="text-sm font-semibold text-amber-700">Gunakan fitur ini dengan hati-hati</p>
+              <p class="text-xs text-amber-600 mt-0.5">Fitur ini mengupdate <code class="bg-amber-100 px-1 rounded">pg_score</code> di database. Pastikan pengaturan <strong>Nilai Max PG</strong> sudah benar sebelum scan.</p>
+            </div>
+          </div>
+
+          <!-- Current setting indicator -->
+          <div class="flex items-center gap-3 bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3">
+            <span class="text-xs text-indigo-600">Nilai Max PG aktif saat ini:</span>
+            <span class="px-3 py-1 rounded-lg bg-indigo-500 text-white text-sm font-bold">{{ nilaiMaxPg }}</span>
+            <span class="text-xs text-indigo-500">→ Essay maks: <strong>{{ nilaiMaxEssay }}</strong></span>
+          </div>
+
+          <!-- Filters -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <!-- Mapel -->
+            <div>
+              <label class="block text-xs font-semibold text-venus-700 mb-2">Filter Mata Pelajaran <span class="text-venus-400 font-normal">(kosong = semua)</span></label>
+              <div class="space-y-1.5 max-h-44 overflow-y-auto pr-1 border border-venus-100 rounded-xl p-3 bg-venus-50/40">
+                <label
+                  v-for="m in auditMapelOptions" :key="m.id"
+                  class="flex items-center gap-2 cursor-pointer group"
+                >
+                  <input type="checkbox" :value="m.id" v-model="auditSelectedMapel" class="accent-primary-600 w-3.5 h-3.5" />
+                  <span class="text-sm text-venus-700 group-hover:text-primary-600 transition-colors">{{ m.nama }}</span>
+                </label>
+                <p v-if="auditMapelOptions.length === 0" class="text-xs text-venus-400">Memuat...</p>
+              </div>
+            </div>
+            <!-- Kelas -->
+            <div>
+              <label class="block text-xs font-semibold text-venus-700 mb-2">Filter Kelas <span class="text-venus-400 font-normal">(kosong = semua)</span></label>
+              <div class="space-y-1.5 max-h-44 overflow-y-auto pr-1 border border-venus-100 rounded-xl p-3 bg-venus-50/40">
+                <label
+                  v-for="k in auditKelasOptions" :key="k.id"
+                  class="flex items-center gap-2 cursor-pointer group"
+                >
+                  <input type="checkbox" :value="k.id" v-model="auditSelectedKelas" class="accent-primary-600 w-3.5 h-3.5" />
+                  <span class="text-sm text-venus-700 group-hover:text-primary-600 transition-colors">{{ k.nama }}</span>
+                </label>
+                <p v-if="auditKelasOptions.length === 0" class="text-xs text-venus-400">Memuat...</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Scan Button -->
+          <button
+            @click="runAudit"
+            :disabled="auditLoading"
+            class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 text-white text-sm font-semibold hover:bg-amber-600 disabled:opacity-50 transition-colors shadow-sm"
+          >
+            <div v-if="auditLoading" class="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+            <ScanSearch v-else :size="15" />
+            {{ auditLoading ? 'Memindai data...' : 'Scan Sekarang' }}
+          </button>
+
+          <!-- Results -->
+          <template v-if="auditDone && !auditLoading">
+
+            <!-- All good -->
+            <div v-if="auditResults.length === 0" class="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+              <CheckCircle2 :size="16" class="text-emerald-500 shrink-0" />
+              <p class="text-sm text-emerald-700 font-medium">Semua nilai sudah konsisten dengan pengaturan saat ini. Tidak ada yang perlu diperbaiki.</p>
+            </div>
+
+            <!-- Issues found -->
+            <div v-else class="space-y-3">
+              <!-- Header -->
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                  <p class="text-sm font-semibold text-red-600">{{ auditResults.length }} nilai tidak konsisten ditemukan</p>
+                </div>
+                <label class="flex items-center gap-1.5 text-xs text-venus-500 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    :checked="selectedAuditCount === auditResults.length"
+                    :indeterminate="selectedAuditCount > 0 && selectedAuditCount < auditResults.length"
+                    @change="e => toggleSelectAll(e.target.checked)"
+                    class="accent-primary-600 w-3.5 h-3.5"
+                  />
+                  Pilih Semua ({{ selectedAuditCount }}/{{ auditResults.length }})
+                </label>
+              </div>
+
+              <!-- Table -->
+              <div class="overflow-x-auto rounded-xl border border-venus-100">
+                <table class="w-full text-left">
+                  <thead>
+                    <tr class="bg-venus-50 border-b border-venus-100">
+                      <th class="px-3 py-2.5"></th>
+                      <th class="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-venus-400">Siswa</th>
+                      <th class="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-venus-400">Mapel / Kelas</th>
+                      <th class="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-venus-400 text-center">Waktu Submit</th>
+                      <th class="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-venus-400 text-center">Nilai Lama</th>
+                      <th class="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-venus-400 text-center">Nilai Baru</th>
+                      <th class="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-venus-400 text-center">Selisih</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-venus-50">
+                    <tr
+                      v-for="r in auditResults" :key="r.id"
+                      class="transition-colors"
+                      :class="r.selected ? 'bg-primary-50/40' : 'hover:bg-venus-50/40'"
+                    >
+                      <td class="px-3 py-2.5">
+                        <input type="checkbox" v-model="r.selected" class="accent-primary-600 w-3.5 h-3.5" />
+                      </td>
+                      <td class="px-3 py-2.5">
+                        <p class="text-xs font-semibold text-venus-800">{{ r.profiles?.full_name || '—' }}</p>
+                        <p class="text-[10px] text-venus-400">{{ r.ujian?.nama || '—' }}</p>
+                      </td>
+                      <td class="px-3 py-2.5">
+                        <p class="text-xs text-venus-700">{{ r.ujian?.mapel?.nama || '—' }}</p>
+                        <p class="text-[10px] text-venus-400">{{ r.ujian?.kelas?.nama || '—' }}</p>
+                      </td>
+                      <td class="px-3 py-2.5 text-center">
+                        <p class="text-xs font-medium text-venus-700">{{ r.submitted_at ? new Date(r.submitted_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '—' }}</p>
+                        <p class="text-[10px] text-venus-400 font-mono">{{ r.submitted_at ? new Date(r.submitted_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) + ' WIB' : '' }}</p>
+                      </td>
+                      <td class="px-3 py-2.5 text-center">
+                        <span class="inline-block px-2 py-0.5 rounded-md bg-red-50 text-red-600 text-xs font-bold">{{ r.currentScore }}</span>
+                      </td>
+                      <td class="px-3 py-2.5 text-center">
+                        <span class="inline-block px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-xs font-bold">{{ r.expectedScore }}</span>
+                      </td>
+                      <td class="px-3 py-2.5 text-center">
+                        <span
+                          class="inline-block px-2 py-0.5 rounded-md text-xs font-bold"
+                          :class="r.diff > 0 ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600'"
+                        >
+                          {{ r.diff > 0 ? '+' : '' }}{{ r.diff }}
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Apply Button -->
+              <div class="flex justify-end">
+                <button
+                  @click="applyRecalculate"
+                  :disabled="auditLoading || selectedAuditCount === 0"
+                  class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 disabled:opacity-50 transition-colors shadow-sm"
+                >
+                  <RefreshCw :size="14" />
+                  Terapkan Hitung Ulang ({{ selectedAuditCount }} dipilih)
+                </button>
+              </div>
+            </div>
+          </template>
+
         </div>
       </div>
 
