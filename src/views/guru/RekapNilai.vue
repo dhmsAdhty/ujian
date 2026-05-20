@@ -332,6 +332,7 @@ const openGradingModal = (result) => {
       <div class="flex items-center gap-2">
         <button
           v-if="selectedExam"
+          id="tour-btn-preview-rekap"
           @click="isPreviewOpen = true"
           class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-amber-200 text-amber-600 text-sm font-semibold hover:bg-amber-50 bg-white transition-colors"
         >
@@ -445,6 +446,7 @@ const openGradingModal = (result) => {
           <input v-model="searchQuery" type="text" placeholder="Cari nama siswa..." class="form-input pl-9 text-sm" />
         </div>
         <AppSelect
+          id="tour-select-rekap"
           v-model="selectedExam"
           placeholder="Semua Ujian"
           :options="filteredExams.map(e => ({ value: e.id, label: e.nama }))"

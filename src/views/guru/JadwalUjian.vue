@@ -610,7 +610,7 @@ const getEffectiveStatus = (ujian) => {
           </tr>
         </thead>
         <tbody class="divide-y divide-venus-50">
-          <tr v-for="ujian in ujianList" :key="ujian.id" class="transition-colors hover:bg-venus-50/50">
+          <tr v-for="(ujian, index) in ujianList" :key="ujian.id" class="transition-colors hover:bg-venus-50/50">
             <td class="max-w-[200px] px-6 py-4">
               <p class="truncate font-medium text-venus-800">{{ ujian.nama }}</p>
             </td>
@@ -640,6 +640,7 @@ const getEffectiveStatus = (ujian) => {
               <div class="flex items-center justify-end gap-2">
                 <button
                   type="button"
+                  :id="index === 0 ? 'tour-btn-preview-jadwal' : ''"
                   @click="openPreview(ujian.id)"
                   class="pressable-soft rounded-lg border border-venus-200/80 bg-white p-1.5 text-venus-400 shadow-ios-sm hover:text-amber-500 active:opacity-70"
                   title="Preview POV Siswa"

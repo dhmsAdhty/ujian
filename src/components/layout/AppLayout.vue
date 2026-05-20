@@ -29,10 +29,68 @@ const isTourActive = ref(false)
 const tourSteps = computed(() => {
   if (authStore.role === 'guru') {
     return [
+      // — Langkah 1: Perkenalkan menu Monitoring di sidebar —
       {
         target: '#sidebar-menu-monitoring',
-        title: 'Menu Monitoring Baru',
-        content: 'Klik di sini untuk membuka dashboard monitoring pelanggaran dan progres siswa secara langsung.'
+        title: '1. Menu Monitoring Siswa',
+        content: 'Menu baru! Pantau pelanggaran (keluar tab) dan progres pengerjaan soal siswa secara real-time langsung dari sini.'
+      },
+      // — Langkah 2: Perkenalkan menu Jadwal Ujian —
+      {
+        target: '#sidebar-menu-jadwal-ujian',
+        title: '2. Jadwal Ujian',
+        content: 'Buka halaman Jadwal Ujian. Di sini Anda bisa melihat semua ujian yang telah dibuat, lengkap dengan tombol pratinjau POV siswa.'
+      },
+      // — Langkah 3: Sorot tombol mata Preview POV di baris pertama tabel —
+      {
+        route: '/guru/jadwal',
+        target: '#tour-btn-preview-jadwal',
+        title: '3. Tombol Pratinjau POV Siswa',
+        content: 'Ini dia! Klik tombol mata 👁 pada baris ujian mana pun untuk membuka simulator interaktif persis seperti yang dilihat siswa saat mengerjakan ujian.'
+      },
+      // — Langkah 4: Perkenalkan menu Rekap Nilai —
+      {
+        target: '#sidebar-menu-rekap-nilai',
+        title: '4. Rekap Nilai',
+        content: 'Buka halaman Rekap Nilai untuk melihat rincian nilai akhir setiap siswa beserta pecahan skor PG & Essay-nya.'
+      },
+      // — Langkah 5: Sorot selector ujian di Rekap Nilai, jelas bahwa Preview POV muncul setelah pilih ujian —
+      {
+        route: '/guru/nilai',
+        target: '#tour-select-rekap',
+        title: '5. Pilih Ujian → Aktifkan Preview',
+        content: 'Pilih ujian dari dropdown ini. Setelah ujian dipilih, tombol "Preview POV Siswa" 👁 akan muncul di area header atas — klik untuk mensimulasikan tampilan layar siswa!'
+      }
+    ]
+  }
+  if (authStore.role === 'admin') {
+    return [
+      // — Langkah 1: Perkenalkan menu Pengaturan —
+      {
+        target: '#sidebar-menu-pengaturan',
+        title: '1. Menu Pengaturan',
+        content: 'Buka halaman Pengaturan untuk mengonfigurasi parameter penilaian sistem, termasuk fitur bobot PG khusus per kelas yang baru.'
+      },
+      // — Langkah 2: Sorot tabel override bobot per kelas —
+      {
+        route: '/admin/settings',
+        target: '#tour-tabel-override',
+        title: '2. Tabel Bobot PG Per Kelas',
+        content: 'Isi input nilai di sini untuk menetapkan bobot maksimum PG khusus per kelas (override). Kosongkan untuk mengikuti nilai global. Contoh: SMP diisi 80, SMA diisi 100.'
+      },
+      // — Langkah 3: Sorot accordion Audit & Hitung Ulang Nilai —
+      {
+        route: '/admin/settings',
+        target: '#tour-accordion-audit',
+        title: '3. Buka Panel Audit Nilai',
+        content: 'Klik accordion "Audit & Hitung Ulang Nilai" ini untuk membuka panel scan adaptif. Anda bisa mendeteksi nilai siswa yang belum konsisten dengan pengaturan bobot kelas terbaru.'
+      },
+      // — Langkah 4: Sorot tombol Scan Audit Nilai —
+      {
+        route: '/admin/settings',
+        target: '#tour-btn-scan-audit',
+        title: '4. Scan Sekarang!',
+        content: 'Klik tombol kuning ini untuk memulai pemindaian. Sistem akan menampilkan daftar nilai yang perlu diperbarui berdasarkan konfigurasi bobot kelas yang baru saja Anda atur.'
       }
     ]
   }

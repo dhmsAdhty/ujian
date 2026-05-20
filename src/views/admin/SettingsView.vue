@@ -512,7 +512,7 @@ onMounted(() => {
               Atur nilai maksimal PG spesifik untuk kelas tertentu jika berbeda dari global (misal: SMP diisi 100). Kosongkan untuk mengikuti nilai global (<strong>{{ nilaiMaxPg }}</strong>).
             </p>
 
-            <div class="border border-venus-100 rounded-xl overflow-hidden bg-venus-50/20 max-h-60 overflow-y-auto mb-4">
+            <div id="tour-tabel-override" class="border border-venus-100 rounded-xl overflow-hidden bg-venus-50/20 max-h-60 overflow-y-auto mb-4">
               <table class="w-full text-left text-xs">
                 <thead>
                   <tr class="bg-venus-50 border-b border-venus-100 text-venus-400">
@@ -624,6 +624,7 @@ onMounted(() => {
       <!-- Accordion: Audit & Hitung Ulang Nilai -->
       <div class="rounded-2xl border border-venus-100 bg-white overflow-hidden shadow-sm">
         <button
+          id="tour-accordion-audit"
           @click="toggle('audit')"
           class="w-full flex items-center justify-between px-5 py-4 hover:bg-venus-50/50 transition-colors"
         >
@@ -695,6 +696,7 @@ onMounted(() => {
 
           <!-- Scan Button -->
           <button
+            id="tour-btn-scan-audit"
             @click="runAudit"
             :disabled="auditLoading"
             class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 text-white text-sm font-semibold hover:bg-amber-600 disabled:opacity-50 transition-colors shadow-sm"

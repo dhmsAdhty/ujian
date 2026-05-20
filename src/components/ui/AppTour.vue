@@ -2,12 +2,13 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { ChevronRight, ChevronLeft, X, Sparkles } from 'lucide-vue-next'
 import { PrimaryButton } from '@/components/ui'
+import { useRouter } from 'vue-router'
 
 const props = defineProps({
   steps: {
     type: Array,
     required: true,
-    // Step: { target: '#id', title: '', content: '' }
+    // Step: { target: '#id', title: '', content: '', route: '/path' }
   },
   modelValue: {
     type: Boolean,
@@ -17,23 +18,52 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'complete'])
 
+const router = useRouter()
 const currentStepIndex = ref(0)
 const spotlightStyle = ref({})
 const tooltipStyle = ref({})
+const tooltipAlign = ref('bottom-center') // 'bottom-center' | 'bottom-left' | 'bottom-right' | 'top-center' | 'top-left' | 'top-right'
 
-const updateSpotlight = () => {
+const updateSpotlight = async () => {
   const step = props.steps[currentStepIndex.value]
-  if (!step || !step.target) return
+  if (!step) return
+
+  // Auto-navigate if step has a route defined and we are not currently there
+  if (step.route && router && router.currentRoute.value.path !== step.route) {
+    try {
+      await router.push(step.route)
+      // Allow DOM to mount the components of the new view
+      await new Promise(resolve => setTimeout(resolve, 600))
+    } catch (err) {
+      console.error('Failed to navigate tour route:', err)
+    }
+  }
+
+  if (!step.target) return
 
   const targetEl = document.querySelector(step.target)
   if (!targetEl) {
-    // If target not found, move to next or skip
-    console.warn(`Tour target ${step.target} not found`)
+    // If target not found, try to wait a tiny bit longer and query again
+    setTimeout(() => {
+      const retryEl = document.querySelector(step.target)
+      if (retryEl) {
+        applySpotlightOnElement(retryEl)
+      } else {
+        console.warn(`Tour target ${step.target} not found after retry`)
+      }
+    }, 400)
     return
   }
 
+  applySpotlightOnElement(targetEl)
+}
+
+const applySpotlightOnElement = (targetEl) => {
   const rect = targetEl.getBoundingClientRect()
   const padding = 8
+  const TOOLTIP_W = 300
+  const TOOLTIP_H = 220
+  const GAP = 12
 
   // Spotlight position
   spotlightStyle.value = {
@@ -41,36 +71,55 @@ const updateSpotlight = () => {
     left: `${rect.left - padding}px`,
     width: `${rect.width + padding * 2}px`,
     height: `${rect.height + padding * 2}px`,
-    boxShadow: `0 0 0 9999px rgba(15, 23, 42, 0.75)` // Tailwind slate-900 with opacity
+    boxShadow: `0 0 0 9999px rgba(15, 23, 42, 0.75)`
   }
 
-  // Tooltip position
-  // Default: bottom center
-  let tTop = rect.bottom + padding + 12
-  let tLeft = rect.left + rect.width / 2
-
-  // Adjustment if too close to bottom or right
   const windowHeight = window.innerHeight
   const windowWidth = window.innerWidth
 
-  if (tTop + 200 > windowHeight) {
-    tTop = rect.top - padding - 180 // Show above
+  // Determine vertical position: prefer below, fall back to above
+  const spaceBelow = windowHeight - rect.bottom
+  const spaceAbove = rect.top
+  const showAbove = spaceBelow < TOOLTIP_H + GAP && spaceAbove > TOOLTIP_H + GAP
+  const tTop = showAbove
+    ? rect.top - GAP - TOOLTIP_H
+    : rect.bottom + GAP
+
+  // Determine horizontal alignment
+  // Center of the target element
+  const centerX = rect.left + rect.width / 2
+  // Tooltip half-width = 150px
+  const halfW = TOOLTIP_W / 2
+
+  let tLeft, transform, align
+
+  if (centerX + halfW > windowWidth - 16) {
+    // Too close to the right edge → align tooltip to the right of the element
+    tLeft = Math.min(rect.right, windowWidth - 16)
+    transform = 'translateX(-100%)'
+    align = showAbove ? 'top-right' : 'bottom-right'
+  } else if (centerX - halfW < 16) {
+    // Too close to left edge → align left
+    tLeft = Math.max(rect.left, 16)
+    transform = 'translateX(0)'
+    align = showAbove ? 'top-left' : 'bottom-left'
+  } else {
+    // Normal center alignment
+    tLeft = centerX
+    transform = 'translateX(-50%)'
+    align = showAbove ? 'top-center' : 'bottom-center'
   }
-  
-  if (tLeft + 150 > windowWidth) {
-    tLeft = windowWidth - 170
-  } else if (tLeft - 150 < 0) {
-    tLeft = 170
-  }
+
+  tooltipAlign.value = align
 
   tooltipStyle.value = {
     top: `${tTop}px`,
     left: `${tLeft}px`,
-    transform: 'translateX(-50%)'
+    transform,
   }
 
   // Scroll into view if needed
-  targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  targetEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
 }
 
 const nextStep = () => {
@@ -161,8 +210,17 @@ onUnmounted(() => {
           </PrimaryButton>
         </div>
 
-        <!-- Arrow indicator (optional, simplified) -->
-        <div class="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white rotate-45 border-l border-t border-venus-100"></div>
+        <!-- Arrow indicator — adapts to tooltip direction -->
+        <div
+          class="absolute w-4 h-4 bg-white rotate-45 border-venus-100"
+          :class="{
+            '-top-2 border-l border-t': tooltipAlign.includes('bottom'),
+            '-bottom-2 border-r border-b': tooltipAlign.includes('top'),
+            'left-1/2 -translate-x-1/2': tooltipAlign.includes('center'),
+            'right-4': tooltipAlign.includes('right'),
+            'left-4': tooltipAlign.includes('left'),
+          }"
+        ></div>
       </div>
     </div>
   </Teleport>
