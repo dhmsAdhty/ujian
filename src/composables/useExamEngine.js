@@ -16,7 +16,7 @@ export function useExamEngine(examId, { onViolationSubmit, onTimerEnd } = {}) {
   const loading = ref(true)
   const isFinished = ref(false)
   const interval = ref(null)
-  const examInfo = ref({ nama: '', mapel: '', kelas: '', totalSoal: 0 })
+  const examInfo = ref({ nama: '', mapel: '', kelas: '', totalSoal: 0, kelas_id: null })
   const toleransiPelanggaran = ref(1) // default 1x
   const nilaiMaxPg = ref(100) // default ×100, dapat di-override dari app_settings
 
@@ -40,7 +40,7 @@ export function useExamEngine(examId, { onViolationSubmit, onTimerEnd } = {}) {
     // Fetch exam details (durasi, acak_soal, nama, mapel, kelas, jadwal)
     const { data: ujianData, error: ujianError } = await supabase
       .from('ujian')
-      .select('durasi, acak_soal, nama, status, tanggal_mulai, tanggal_selesai, mapel(nama), kelas(nama)')
+      .select('durasi, acak_soal, nama, status, tanggal_mulai, tanggal_selesai, mapel(nama), kelas(nama), kelas_id')
       .eq('id', examId)
       .single()
 
@@ -115,7 +115,8 @@ export function useExamEngine(examId, { onViolationSubmit, onTimerEnd } = {}) {
         nama: ujianData.nama || '',
         mapel: ujianData.mapel?.nama || '',
         kelas: ujianData.kelas?.nama || '',
-        totalSoal: soalList.length
+        totalSoal: soalList.length,
+        kelas_id: ujianData.kelas_id || null
       }
       startTimer()
     }
@@ -167,14 +168,25 @@ export function useExamEngine(examId, { onViolationSubmit, onTimerEnd } = {}) {
     clearInterval(interval.value)
     isFinished.value = true
 
-    // Re-fetch nilai_max_pg dari DB saat submit agar selalu pakai setting terbaru,
+    // Re-fetch nilai_max_pg dan per-kelas override dari DB saat submit agar selalu pakai setting terbaru,
     // tidak bergantung pada nilai yang di-cache saat loadExam()
-    const { data: freshSetting } = await supabase
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'nilai_max_pg')
-      .maybeSingle()
-    if (freshSetting?.value) nilaiMaxPg.value = Number(freshSetting.value)
+    let activeMaxPg = nilaiMaxPg.value
+
+    const [freshSetting, freshOverride] = await Promise.all([
+      supabase.from('app_settings').select('value').eq('key', 'nilai_max_pg').maybeSingle(),
+      examInfo.value.kelas_id
+        ? supabase.from('app_settings').select('value').eq('key', `nilai_max_pg_kelas_${examInfo.value.kelas_id}`).maybeSingle()
+        : Promise.resolve({ data: null })
+    ])
+
+    if (freshSetting?.data?.value) {
+      nilaiMaxPg.value = Number(freshSetting.data.value)
+      activeMaxPg = nilaiMaxPg.value
+    }
+
+    if (freshOverride?.data?.value) {
+      activeMaxPg = Number(freshOverride.data.value)
+    }
 
     // Hitung skor otomatis untuk pilihan ganda
     let pgCorrect = 0
@@ -204,10 +216,10 @@ export function useExamEngine(examId, { onViolationSubmit, onTimerEnd } = {}) {
     const totalSoal = questions.value.length
 
     // Formula baru:
-    // Nilai PG = (Jawaban Benar PG / Total Soal PG) × nilaiMaxPg
+    // Nilai PG = (Jawaban Benar PG / Total Soal PG) × activeMaxPg
     // Nilai Akhir (saat submit) = Nilai PG (karena essay belum dinilai)
     const pgScore = totalSoalPg > 0
-      ? parseFloat((pgCorrect / totalSoalPg * nilaiMaxPg.value).toFixed(2))
+      ? parseFloat((pgCorrect / totalSoalPg * activeMaxPg).toFixed(2))
       : 0
 
     // Cek apakah ada row reset (submitted_at null) untuk ujian ini

@@ -17,6 +17,10 @@ const nilaiMaxPg = ref(70) // nilai maksimal PG (default 70)
 const jumlahSoalEssay = ref(3) // jumlah soal essay
 const allowPgKompleks = ref(true) // Pilihan ganda kompleks aktif/tidak
 
+// Overrides per Kelas
+const listKelas = ref([])
+const kelasOverrides = ref({})
+
 // nilai_max_essay selalu = 100 - nilai_max_pg (otomatis)
 const nilaiMaxEssay = computed(() => 100 - nilaiMaxPg.value)
 const nilaiPerSoalEssay = computed(() =>
@@ -71,6 +75,21 @@ const fetchSettings = async () => {
     if (row.key === 'jumlah_soal_essay') jumlahSoalEssay.value = Number(row.value)
     if (row.key === 'allow_pg_kompleks') allowPgKompleks.value = row.value === 'true'
   })
+
+  // Fetch semua kelas & overrides
+  const [kelasRes, overridesRes] = await Promise.all([
+    supabase.from('kelas').select('id, nama').order('nama'),
+    supabase.from('app_settings').select('key, value').like('key', 'nilai_max_pg_kelas_%')
+  ])
+
+  listKelas.value = kelasRes.data || []
+  const overrides = {}
+  ;(overridesRes.data || []).forEach(row => {
+    const kId = row.key.replace('nilai_max_pg_kelas_', '')
+    overrides[kId] = row.value ? Number(row.value) : ''
+  })
+  kelasOverrides.value = overrides
+
   initPreviewEssay()
   loading.value = false
 }
@@ -87,6 +106,14 @@ const saveSection = async (section) => {
       { key: 'jumlah_soal_essay', value: String(jumlahSoalEssay.value) }
     ]
     initPreviewEssay()
+  } else if (section === 'penilaian_kelas') {
+    rows = listKelas.value.map(k => {
+      const val = kelasOverrides.value[k.id]
+      return {
+        key: `nilai_max_pg_kelas_${k.id}`,
+        value: val !== null && val !== undefined && val !== '' ? String(val) : ''
+      }
+    })
   } else if (section === 'fitur') {
     rows = [{ key: 'allow_pg_kompleks', value: allowPgKompleks.value ? 'true' : 'false' }]
   }
@@ -116,6 +143,7 @@ const auditKelasOptions = ref([])
 const auditSelectedMapel = ref([])
 const auditSelectedKelas = ref([])
 const pgCountCache = ref({})
+const lastAuditFilterDesc = ref('')
 
 const selectedAuditCount = computed(() => auditResults.value.filter(r => r.selected).length)
 
@@ -157,6 +185,18 @@ const runAudit = async () => {
     return
   }
 
+  // Fetch overrides fresh
+  const { data: freshOverrides } = await supabase
+    .from('app_settings')
+    .select('key, value')
+    .like('key', 'nilai_max_pg_kelas_%')
+
+  const overridesMap = {}
+  ;(freshOverrides || []).forEach(row => {
+    const kId = row.key.replace('nilai_max_pg_kelas_', '')
+    if (row.value) overridesMap[kId] = Number(row.value)
+  })
+
   let filtered = data || []
   if (auditSelectedMapel.value.length > 0)
     filtered = filtered.filter(r => auditSelectedMapel.value.includes(r.ujian?.mapel?.id))
@@ -167,7 +207,11 @@ const runAudit = async () => {
   for (const result of filtered) {
     const totalPg = await getPgCount(result.exam_id)
     if (totalPg === 0) continue
-    const expectedScore = parseFloat((result.pg_correct / totalPg * nilaiMaxPg.value).toFixed(2))
+
+    const kelasId = result.ujian?.kelas?.id
+    const targetMaxPg = overridesMap[kelasId] !== undefined ? overridesMap[kelasId] : nilaiMaxPg.value
+
+    const expectedScore = parseFloat((result.pg_correct / totalPg * targetMaxPg).toFixed(2))
     const currentScore = parseFloat((result.pg_score ?? 0).toFixed(2))
     if (Math.abs(expectedScore - currentScore) > 0.01) {
       affected.push({ ...result, totalPg, expectedScore, currentScore, diff: parseFloat((expectedScore - currentScore).toFixed(2)), selected: true })
@@ -175,6 +219,16 @@ const runAudit = async () => {
   }
 
   auditResults.value = affected
+  
+  // Rekam deskripsi filter scan untuk ditampilkan di pesan sukses
+  const mapelNames = auditSelectedMapel.value.length > 0
+    ? auditSelectedMapel.value.map(id => auditMapelOptions.value.find(m => m.id === id)?.nama).filter(Boolean).join(', ')
+    : 'Semua Mapel'
+  const kelasNames = auditSelectedKelas.value.length > 0
+    ? auditSelectedKelas.value.map(id => auditKelasOptions.value.find(k => k.id === id)?.nama).filter(Boolean).join(', ')
+    : 'Semua Kelas'
+  lastAuditFilterDesc.value = `Mapel: ${mapelNames} | Kelas: ${kelasNames}`
+
   auditDone.value = true
   auditLoading.value = false
 }
@@ -448,6 +502,61 @@ onMounted(() => {
 
           <div class="border-t border-venus-100"></div>
 
+          <!-- ─── Overrides Per Kelas Section ─── -->
+          <div>
+            <div class="flex items-center gap-2 mb-2">
+              <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-purple-100 text-purple-600 text-[11px] font-black uppercase tracking-wide">Override</span>
+              <p class="text-sm font-semibold text-venus-800">Bobot Nilai PG Khusus Per Kelas</p>
+            </div>
+            <p class="text-xs text-venus-400 mb-4">
+              Atur nilai maksimal PG spesifik untuk kelas tertentu jika berbeda dari global (misal: SMP diisi 100). Kosongkan untuk mengikuti nilai global (<strong>{{ nilaiMaxPg }}</strong>).
+            </p>
+
+            <div class="border border-venus-100 rounded-xl overflow-hidden bg-venus-50/20 max-h-60 overflow-y-auto mb-4">
+              <table class="w-full text-left text-xs">
+                <thead>
+                  <tr class="bg-venus-50 border-b border-venus-100 text-venus-400">
+                    <th class="px-4 py-2.5 font-bold uppercase">Nama Kelas</th>
+                    <th class="px-4 py-2.5 font-bold uppercase text-right">Nilai Maksimal PG</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-venus-50">
+                  <tr v-for="k in listKelas" :key="k.id" class="hover:bg-white transition-colors">
+                    <td class="px-4 py-3 font-medium text-venus-700">{{ k.nama }}</td>
+                    <td class="px-4 py-3 text-right">
+                      <div class="flex items-center justify-end gap-2">
+                        <input
+                          v-model.number="kelasOverrides[k.id]"
+                          type="number"
+                          min="1"
+                          max="100"
+                          :placeholder="`Default Global (${nilaiMaxPg})`"
+                          class="form-input w-40 text-right text-xs py-1.5 font-medium placeholder:text-venus-300"
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                  <tr v-if="listKelas.length === 0">
+                    <td colspan="2" class="px-4 py-3 text-center text-venus-400">Tidak ada data kelas.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="flex justify-end">
+              <button
+                @click="saveSection('penilaian_kelas')"
+                :disabled="saving"
+                class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600 text-white text-xs font-semibold hover:bg-purple-700 disabled:opacity-50 transition-colors shadow-sm"
+              >
+                <Save :size="12" />
+                {{ saving ? 'Menyimpan...' : 'Simpan Bobot Kelas' }}
+              </button>
+            </div>
+          </div>
+
+          <div class="border-t border-venus-100"></div>
+
           <!-- ─── Preview Gabungan ─── -->
           <div class="bg-slate-50 rounded-xl border border-slate-100 p-4 space-y-4">
             <p class="text-xs font-bold uppercase tracking-widest text-venus-400">Preview Kalkulasi Gabungan</p>
@@ -599,9 +708,14 @@ onMounted(() => {
           <template v-if="auditDone && !auditLoading">
 
             <!-- All good -->
-            <div v-if="auditResults.length === 0" class="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
-              <CheckCircle2 :size="16" class="text-emerald-500 shrink-0" />
-              <p class="text-sm text-emerald-700 font-medium">Semua nilai sudah konsisten dengan pengaturan saat ini. Tidak ada yang perlu diperbaiki.</p>
+            <div v-if="auditResults.length === 0" class="flex flex-col gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+              <div class="flex items-center gap-3">
+                <CheckCircle2 :size="16" class="text-emerald-500 shrink-0" />
+                <p class="text-sm text-emerald-700 font-semibold">Hasil scan konsisten! Tidak ada nilai bermasalah yang perlu diperbaiki.</p>
+              </div>
+              <div class="ml-7 text-[11px] text-emerald-600 bg-emerald-100/30 border border-emerald-100 rounded-lg p-2 self-start font-medium">
+                <span class="font-bold">Cakupan Scan:</span> {{ lastAuditFilterDesc }}
+              </div>
             </div>
 
             <!-- Issues found -->
