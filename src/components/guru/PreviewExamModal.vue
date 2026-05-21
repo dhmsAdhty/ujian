@@ -295,22 +295,30 @@ const simulateSubmit = async () => {
                     v-for="opt in currentQuestion.options"
                     :key="opt.label"
                     @click="selectOption(opt.label)"
-                    class="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl border text-left transition-all duration-150"
+                    class="w-full flex items-start gap-4 px-4 py-3.5 rounded-xl border text-left transition-all duration-150"
                     :class="answers[currentQuestion.id] === opt.label
                       ? 'border-primary-400 bg-primary-50 text-primary-800'
                       : 'border-slate-100 bg-white text-slate-700 hover:border-slate-200 hover:bg-slate-50'"
                   >
                     <span
-                      class="w-8 h-8 shrink-0 rounded-lg text-xs font-semibold flex items-center justify-center transition-colors"
+                      class="w-8 h-8 shrink-0 rounded-lg text-xs font-semibold flex items-center justify-center transition-colors mt-0.5"
                       :class="answers[currentQuestion.id] === opt.label
                         ? 'bg-primary-600 text-white'
                         : 'bg-slate-100 text-slate-500'"
                     >{{ opt.label }}</span>
-                    <span class="text-sm flex-1">{{ opt.text }}</span>
+                    <div class="flex-1 space-y-2">
+                      <span class="text-sm block">{{ opt.text }}</span>
+                      <img
+                        v-if="opt.image_url"
+                        :src="opt.image_url"
+                        class="max-h-48 w-auto rounded-lg border border-slate-100 object-contain bg-white"
+                        alt="Gambar opsi jawaban"
+                      />
+                    </div>
                     <CheckCircle2
                       v-if="answers[currentQuestion.id] === opt.label"
                       :size="16"
-                      class="text-primary-500 shrink-0"
+                      class="text-primary-500 shrink-0 mt-1"
                     />
                   </button>
                 </div>
@@ -322,13 +330,13 @@ const simulateSubmit = async () => {
                     v-for="opt in currentQuestion.options"
                     :key="opt.label"
                     @click="selectOption(opt.label)"
-                    class="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl border text-left transition-all duration-150"
+                    class="w-full flex items-start gap-4 px-4 py-3.5 rounded-xl border text-left transition-all duration-150"
                     :class="isSelectedKompleks(opt.label)
                       ? 'border-purple-400 bg-purple-50 text-purple-800'
                       : 'border-slate-100 bg-white text-slate-700 hover:border-purple-200 hover:bg-purple-50/40'"
                   >
                     <span
-                      class="w-8 h-8 shrink-0 rounded-lg text-xs font-semibold flex items-center justify-center transition-colors border-2"
+                      class="w-8 h-8 shrink-0 rounded-lg text-xs font-semibold flex items-center justify-center transition-colors border-2 mt-0.5"
                       :class="isSelectedKompleks(opt.label)
                         ? 'bg-purple-600 border-purple-600 text-white'
                         : 'bg-white border-slate-200 text-slate-500'"
@@ -336,7 +344,15 @@ const simulateSubmit = async () => {
                       <CheckCircle2 v-if="isSelectedKompleks(opt.label)" :size="16" />
                       <span v-else>{{ opt.label }}</span>
                     </span>
-                    <span class="text-sm flex-1">{{ opt.text }}</span>
+                    <div class="flex-1 space-y-2">
+                      <span class="text-sm block">{{ opt.text }}</span>
+                      <img
+                        v-if="opt.image_url"
+                        :src="opt.image_url"
+                        class="max-h-48 w-auto rounded-lg border border-slate-100 object-contain bg-white"
+                        alt="Gambar opsi jawaban"
+                      />
+                    </div>
                   </button>
                 </div>
 
