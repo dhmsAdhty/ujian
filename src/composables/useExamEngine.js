@@ -110,7 +110,56 @@ export function useExamEngine(examId, { onViolationSubmit, onTimerEnd } = {}) {
       }
 
       questions.value = soalList
-      timer.value = (ujianData.durasi || 60) * 60
+
+      // Hitung sisa waktu berdasarkan started_at yang tersimpan di DB
+      const durasiDetik = (ujianData.durasi || 60) * 60
+      const { data: existingResult } = await supabase
+        .from('exam_results')
+        .select('id, started_at')
+        .eq('exam_id', examId)
+        .eq('siswa_id', authStore.user?.id)
+        .is('submitted_at', null)
+        .maybeSingle()
+
+      if (existingResult?.started_at) {
+        // Siswa sudah pernah buka ujian ini — hitung sisa waktu
+        const elapsed = Math.floor((Date.now() - new Date(existingResult.started_at).getTime()) / 1000)
+        const remaining = durasiDetik - elapsed
+        if (remaining <= 0) {
+          // Waktu sudah habis, langsung submit
+          loading.value = false
+          const success = await submitExam('Waktu Habis!')
+          if (success) {
+            await Swal.fire({
+              icon: 'warning',
+              title: 'Waktu Habis!',
+              text: 'Waktu ujian Anda telah habis. Jawaban otomatis dikumpulkan.',
+              confirmButtonColor: '#4318ff',
+              confirmButtonText: 'Kembali ke Dashboard'
+            })
+            onTimerEnd?.()
+          }
+          return
+        }
+        timer.value = remaining
+      } else {
+        // Pertama kali membuka ujian — set timer penuh & catat started_at
+        timer.value = durasiDetik
+        if (existingResult) {
+          // Row sudah ada (kasus reset guru) — perbarui started_at
+          await supabase.from('exam_results')
+            .update({ started_at: new Date().toISOString() })
+            .eq('id', existingResult.id)
+        } else {
+          // Belum ada row — insert awal dengan started_at
+          await supabase.from('exam_results').insert([{
+            exam_id: examId,
+            siswa_id: authStore.user?.id,
+            started_at: new Date().toISOString()
+          }])
+        }
+      }
+
       examInfo.value = {
         nama: ujianData.nama || '',
         mapel: ujianData.mapel?.nama || '',
@@ -309,13 +358,36 @@ export function useExamEngine(examId, { onViolationSubmit, onTimerEnd } = {}) {
     }
   }
 
+  // Blokir tombol refresh agar siswa tidak bisa reload halaman ujian
+  function handleKeyDown(e) {
+    const isRefresh =
+      e.key === 'F5' ||
+      (e.ctrlKey && e.key === 'r') ||
+      (e.ctrlKey && e.shiftKey && e.key === 'r')
+    if (isRefresh) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+  }
+
+  // Konfirmasi jika siswa mencoba menutup/reload tab secara paksa
+  function handleBeforeUnload(e) {
+    if (isFinished.value) return
+    e.preventDefault()
+    e.returnValue = ''
+  }
+
   onMounted(() => {
     window.addEventListener('blur', handleBlur)
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('beforeunload', handleBeforeUnload)
     loadExam()
   })
 
   onUnmounted(() => {
     window.removeEventListener('blur', handleBlur)
+    window.removeEventListener('keydown', handleKeyDown)
+    window.removeEventListener('beforeunload', handleBeforeUnload)
     clearInterval(interval.value)
   })
 
