@@ -165,10 +165,13 @@ const fetchData = async () => {
     .select('*, profiles!exam_results_siswa_id_fkey(full_name, email), ujian(id, nama, kelas_id, mapel(nama), kelas(nama))')
     .order('submitted_at', { ascending: false })
 
-  if (selectedExam.value) {
-    query = query.eq('exam_id', selectedExam.value)
-  } else if (exams.value.length > 0) {
+  // Keamanan: selalu batasi ke examIds milik guru ini terlebih dahulu,
+  // baru filter per ujian jika dipilih. Mencegah manipulasi exam_id dari luar.
+  if (examIds.length > 0) {
     query = query.in('exam_id', examIds)
+    if (selectedExam.value) {
+      query = query.eq('exam_id', selectedExam.value)
+    }
   }
 
   const { data: resultData, error } = await query
