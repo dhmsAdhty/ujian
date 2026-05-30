@@ -4,7 +4,8 @@ import { supabase } from '@/services/supabase'
 import { useAuthStore } from '@/stores/auth'
 import {
   Plus, Clock, ChevronRight, Pencil, Trash2, Save,
-  Shuffle, List, CheckSquare, Square, Search, X, Eye
+  Shuffle, List, CheckSquare, Square, Search, X, Eye,
+  Filter, GraduationCap, CalendarDays
 } from 'lucide-vue-next'
 import { GlassCard, PrimaryButton, FormInput, AppSelect, EmptyState } from '@/components/ui'
 import PreviewExamModal from '@/components/guru/PreviewExamModal.vue'
@@ -32,6 +33,8 @@ const kelasList = ref([])
 const bankSoalList = ref([])
 const loadingSoal = ref(false)
 const soalSearch = ref('')
+const soalFilterKelas = ref('')
+const soalFilterTipe = ref('')
 const selectedSoalIds = ref([])
 
 const form = ref({
@@ -51,6 +54,8 @@ const resetForm = () => {
   formStep.value = 1
   selectedSoalIds.value = []
   soalSearch.value = ''
+  soalFilterKelas.value = ''
+  soalFilterTipe.value = ''
   bankSoalList.value = []
 }
 
@@ -91,7 +96,7 @@ const fetchBankSoal = async () => {
   loadingSoal.value = true
   const { data } = await supabase
     .from('bank_soal')
-    .select('id, judul, konten, tipe_soal')
+    .select('id, judul, konten, tipe_soal, kelas_id, kelas(nama), created_at')
     .eq('guru_id', authStore.user.id)
     .eq('mapel_id', form.value.mapel_id)
     .is('deleted_at', null)
@@ -100,13 +105,49 @@ const fetchBankSoal = async () => {
   loadingSoal.value = false
 }
 
-const filteredSoal = computed(() => {
-  if (!soalSearch.value) return bankSoalList.value
-  const q = soalSearch.value.toLowerCase()
-  return bankSoalList.value.filter(s =>
-    (s.judul || s.konten || '').toLowerCase().includes(q)
-  )
+// Daftar kelas unik dari soal yang tersedia (untuk filter dropdown)
+const availableKelas = computed(() => {
+  const map = {}
+  bankSoalList.value.forEach(s => {
+    if (s.kelas_id && s.kelas?.nama) {
+      map[s.kelas_id] = s.kelas.nama
+    }
+  })
+  return Object.entries(map)
+    .map(([id, nama]) => ({ value: id, label: nama }))
+    .sort((a, b) => a.label.localeCompare(b.label))
 })
+
+const filteredSoal = computed(() => {
+  let list = bankSoalList.value
+
+  // Filter berdasarkan kelas
+  if (soalFilterKelas.value) {
+    list = list.filter(s => s.kelas_id === soalFilterKelas.value)
+  }
+
+  // Filter berdasarkan tipe soal
+  if (soalFilterTipe.value) {
+    list = list.filter(s => s.tipe_soal === soalFilterTipe.value)
+  }
+
+  // Filter berdasarkan kata kunci
+  if (soalSearch.value) {
+    const q = soalSearch.value.toLowerCase()
+    list = list.filter(s =>
+      (s.judul || s.konten || '').toLowerCase().includes(q)
+    )
+  }
+
+  return list
+})
+
+const formatTanggalSoal = (d) => {
+  if (!d) return ''
+  return new Date(d).toLocaleDateString('id-ID', {
+    day: 'numeric', month: 'short', year: 'numeric'
+  })
+}
 
 const toggleSoal = (id) => {
   const idx = selectedSoalIds.value.indexOf(id)
@@ -480,10 +521,74 @@ const getEffectiveStatus = (ujian) => {
           </div>
         </div>
 
-        <!-- Search -->
-        <div class="relative">
-          <Search :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-venus-400" />
-          <input v-model="soalSearch" type="text" placeholder="Cari soal..." class="form-input pl-9 text-sm" />
+        <!-- Search & Filters -->
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div class="relative flex-1">
+            <Search :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-venus-400" />
+            <input v-model="soalSearch" type="text" placeholder="Cari soal..." class="form-input pl-9 text-sm" />
+          </div>
+          <div class="flex items-center gap-2">
+            <!-- Filter Kelas -->
+            <div class="w-40">
+              <AppSelect
+                v-model="soalFilterKelas"
+                placeholder="Semua Kelas"
+                :options="availableKelas"
+              />
+            </div>
+            <!-- Filter Tipe -->
+            <div class="w-40">
+              <AppSelect
+                v-model="soalFilterTipe"
+                placeholder="Semua Tipe"
+                :options="[
+                  { value: 'pilihan_ganda', label: 'Pilihan Ganda' },
+                  { value: 'pilihan_ganda_kompleks', label: 'PG Kompleks' },
+                  { value: 'essay', label: 'Essay' },
+                ]"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Active filter summary -->
+        <div v-if="soalFilterKelas || soalFilterTipe || soalSearch" class="flex flex-wrap items-center gap-2">
+          <span class="text-[11px] font-semibold text-venus-400">Filter aktif:</span>
+          <span
+            v-if="soalFilterKelas"
+            class="inline-flex items-center gap-1 rounded-lg bg-sky-50 px-2 py-0.5 text-[10px] font-bold text-sky-600 ring-1 ring-sky-100"
+          >
+            <GraduationCap :size="10" />
+            {{ availableKelas.find(k => k.value === soalFilterKelas)?.label }}
+            <button type="button" @click.stop="soalFilterKelas = ''" class="ml-0.5 hover:text-sky-800">
+              <X :size="10" />
+            </button>
+          </span>
+          <span
+            v-if="soalFilterTipe"
+            class="inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-bold ring-1" :class="tipeBadge(soalFilterTipe).cls"
+          >
+            {{ tipeBadge(soalFilterTipe).label }}
+            <button type="button" @click.stop="soalFilterTipe = ''" class="ml-0.5 hover:opacity-70">
+              <X :size="10" />
+            </button>
+          </span>
+          <span
+            v-if="soalSearch"
+            class="inline-flex items-center gap-1 rounded-lg bg-venus-100 px-2 py-0.5 text-[10px] font-bold text-venus-600"
+          >
+            "{{ soalSearch }}"
+            <button type="button" @click.stop="soalSearch = ''" class="ml-0.5 hover:text-venus-800">
+              <X :size="10" />
+            </button>
+          </span>
+          <button
+            type="button"
+            @click.stop="soalSearch = ''; soalFilterKelas = ''; soalFilterTipe = ''"
+            class="text-[10px] font-bold text-red-400 hover:text-red-600 transition-colors"
+          >
+            Reset Semua
+          </button>
         </div>
 
         <!-- List soal -->
@@ -545,10 +650,28 @@ const getEffectiveStatus = (ujian) => {
               <div v-else class="mt-0.5 h-5 w-5 shrink-0" />
               <div class="min-w-0 flex-1">
                 <p class="truncate text-sm font-medium text-venus-800">{{ soal.judul || soal.konten }}</p>
-                <div class="mt-0.5 flex items-center gap-2">
+                <div class="mt-1 flex flex-wrap items-center gap-1.5">
+                  <!-- Tipe soal -->
                   <span class="inline-flex rounded px-1.5 py-0.5 text-[10px] font-bold uppercase" :class="tipeBadge(soal.tipe_soal).cls">
                     {{ tipeBadge(soal.tipe_soal).label }}
                   </span>
+                  <!-- Kelas badge -->
+                  <span
+                    v-if="soal.kelas?.nama"
+                    class="inline-flex items-center gap-0.5 rounded bg-sky-50 px-1.5 py-0.5 text-[10px] font-bold text-sky-600 ring-1 ring-sky-100"
+                  >
+                    <GraduationCap :size="9" />
+                    {{ soal.kelas.nama }}
+                  </span>
+                  <!-- Tanggal dibuat -->
+                  <span
+                    v-if="soal.created_at"
+                    class="inline-flex items-center gap-0.5 rounded bg-venus-50 px-1.5 py-0.5 text-[10px] font-medium text-venus-400"
+                  >
+                    <CalendarDays :size="9" />
+                    {{ formatTanggalSoal(soal.created_at) }}
+                  </span>
+                  <!-- Mode urutan (saat dipilih) -->
                   <span
                     v-if="selectedSoalIds.includes(soal.id)"
                     class="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wide"
