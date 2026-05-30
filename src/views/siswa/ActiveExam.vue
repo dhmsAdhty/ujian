@@ -244,6 +244,8 @@ const renderKonten = (html) => {
             <div
               class="soal-konten text-base sm:text-lg text-slate-800 leading-relaxed"
               v-html="renderKonten(currentQuestion.konten)"
+              translate="no"
+              lang="en"
             />
           </div>
 
@@ -265,7 +267,7 @@ const renderKonten = (html) => {
                   : 'bg-slate-100 text-slate-500'"
               >{{ opt.label }}</span>
               <div class="flex-1 space-y-2">
-                <span class="text-sm block">{{ opt.text }}</span>
+                <span class="text-sm block" translate="no">{{ opt.text }}</span>
                 <img
                   v-if="opt.image_url"
                   :src="opt.image_url"
@@ -304,7 +306,7 @@ const renderKonten = (html) => {
                 <span v-else>{{ opt.label }}</span>
               </span>
               <div class="flex-1 space-y-2">
-                <span class="text-sm block">{{ opt.text }}</span>
+                <span class="text-sm block" translate="no">{{ opt.text }}</span>
                 <img
                   v-if="opt.image_url"
                   :src="opt.image_url"
@@ -323,6 +325,7 @@ const renderKonten = (html) => {
               rows="8"
               class="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400 transition"
               placeholder="Tulis jawaban Anda di sini..."
+              translate="no"
             ></textarea>
           </div>
 
