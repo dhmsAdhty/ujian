@@ -22,6 +22,7 @@ const results = ref([])
 const exams = ref([])
 const selectedExam = ref('')
 const selectedMapel = ref('') // filter per mapel
+const selectedKelas = ref('') // filter per kelas
 const searchQuery = ref('')
 const selectedResult = ref(null)
 const activeTab = ref('mengerjakan') // 'mengerjakan' | 'belum'
@@ -36,19 +37,34 @@ const mapelList = computed(() => {
     .map(e => ({ id: e.mapel.nama, nama: e.mapel.nama }))
 })
 
-// Ujian yang difilter berdasarkan mapel aktif
-const filteredExams = computed(() =>
-  selectedMapel.value
+// Daftar kelas unik, difilter sesuai mapel aktif
+const kelasList = computed(() => {
+  const source = selectedMapel.value
     ? exams.value.filter(e => e.mapel?.nama === selectedMapel.value)
     : exams.value
-)
+  const seen = new Set()
+  return source
+    .filter(e => e.kelas?.nama && !seen.has(e.kelas.nama) && seen.add(e.kelas.nama))
+    .map(e => ({ id: e.kelas.nama, nama: e.kelas.nama }))
+})
 
-// Filter hasil berdasarkan search + ujian + mapel
+// Ujian yang difilter berdasarkan mapel + kelas aktif
+const filteredExams = computed(() => {
+  let list = exams.value
+  if (selectedMapel.value) list = list.filter(e => e.mapel?.nama === selectedMapel.value)
+  if (selectedKelas.value) list = list.filter(e => e.kelas?.nama === selectedKelas.value)
+  return list
+})
+
+// Filter hasil berdasarkan search + ujian + mapel + kelas
 const filteredResults = computed(() => {
   let data = results.value
-  if (selectedMapel.value) {
+  if (selectedMapel.value || selectedKelas.value) {
     const ids = new Set(filteredExams.value.map(e => e.id))
     data = data.filter(r => ids.has(r.exam_id))
+  }
+  if (selectedExam.value) {
+    data = data.filter(r => r.exam_id === selectedExam.value)
   }
   if (searchQuery.value) {
     const q = searchQuery.value.toLowerCase()
@@ -254,7 +270,13 @@ const onExamChange = () => {
 
 const onMapelChange = (mapel) => {
   selectedMapel.value = mapel
+  selectedKelas.value = '' // reset kelas saat mapel berubah
   selectedExam.value = ''
+}
+
+const onKelasChange = (kelas) => {
+  selectedKelas.value = kelas
+  selectedExam.value = '' // reset ujian saat kelas berubah
 }
 
 const exportToExcel = () => {
@@ -473,19 +495,54 @@ const openGradingModal = (result) => {
 
     <!-- Filters -->
     <GlassCard padding="p-4">
-      <div class="flex flex-col sm:flex-row gap-3">
-        <div class="relative flex-1">
-          <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-venus-400" :size="16" />
-          <input v-model="searchQuery" type="text" placeholder="Cari nama siswa..." class="form-input pl-9 text-sm" />
+      <div class="flex flex-col gap-3">
+        <!-- Baris 1: Search + Kelas + Ujian -->
+        <div class="flex flex-col sm:flex-row gap-3">
+          <div class="relative flex-1">
+            <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-venus-400" :size="16" />
+            <input v-model="searchQuery" type="text" placeholder="Cari nama siswa..." class="form-input pl-9 text-sm" />
+          </div>
+          <!-- Filter Kelas -->
+          <AppSelect
+            v-if="kelasList.length > 1"
+            v-model="selectedKelas"
+            placeholder="Semua Kelas"
+            :options="kelasList.map(k => ({ value: k.id, label: k.nama }))"
+            class="sm:w-44"
+            @update:modelValue="onKelasChange"
+          />
+          <!-- Filter Ujian -->
+          <AppSelect
+            id="tour-select-rekap"
+            v-model="selectedExam"
+            placeholder="Semua Ujian"
+            :options="filteredExams.map(e => ({ value: e.id, label: e.nama }))"
+            class="sm:w-64"
+            @update:modelValue="onExamChange"
+          />
         </div>
-        <AppSelect
-          id="tour-select-rekap"
-          v-model="selectedExam"
-          placeholder="Semua Ujian"
-          :options="filteredExams.map(e => ({ value: e.id, label: e.nama }))"
-          class="sm:w-64"
-          @update:modelValue="onExamChange"
-        />
+        <!-- Active filter chips -->
+        <div v-if="selectedKelas || selectedExam" class="flex flex-wrap items-center gap-2">
+          <span class="text-[11px] font-semibold text-venus-400">Filter aktif:</span>
+          <span
+            v-if="selectedKelas"
+            class="inline-flex items-center gap-1 rounded-lg bg-sky-50 px-2.5 py-0.5 text-[10px] font-bold text-sky-600 ring-1 ring-sky-100"
+          >
+            Kelas: {{ selectedKelas }}
+            <button type="button" @click="onKelasChange('')" class="ml-0.5 hover:text-sky-800">
+              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </span>
+          <span
+            v-if="selectedExam"
+            class="inline-flex items-center gap-1 rounded-lg bg-primary-50 px-2.5 py-0.5 text-[10px] font-bold text-primary-600 ring-1 ring-primary-100"
+          >
+            Ujian: {{ filteredExams.find(e => e.id === selectedExam)?.nama }}
+            <button type="button" @click="selectedExam = ''; onExamChange()" class="ml-0.5 hover:text-primary-800">
+              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </span>
+        </div>
       </div>
     </GlassCard>
 
