@@ -32,6 +32,7 @@ const router = createRouter({
         { path: 'soal', name: 'admin-soal', component: () => import('@/views/admin/StatistikSoal.vue') },
         { path: 'kelas', name: 'admin-kelas', component: () => import('@/views/admin/KelasView.vue') },
         { path: 'laporan', name: 'admin-laporan', component: () => import('@/views/admin/LaporanNilai.vue') },
+        { path: 'jadwal', name: 'admin-jadwal', component: () => import('@/views/admin/JadwalUjian.vue') },
         { path: 'aktivitas', name: 'admin-aktivitas', component: () => import('@/views/admin/AktivitasPengguna.vue') },
         { path: 'trash', name: 'admin-trash', component: () => import('@/views/admin/TrashSoal.vue') },
         { path: 'settings', name: 'admin-settings', component: () => import('@/views/admin/SettingsView.vue') },
