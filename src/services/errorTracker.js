@@ -17,6 +17,31 @@ const recentErrors = new Map()
 const THROTTLE_MS = 60_000 // 60 detik
 
 /**
+ * Daftar pola pesan error yang merupakan "browser noise" — non-fatal dan
+ * tidak perlu dicatat ke database. Tambahkan pola baru di sini jika muncul
+ * error lain yang serupa.
+ *
+ * Contoh yang difilter:
+ * - ResizeObserver loop: dipicu vue-echarts (autoresize) saat layout berubah
+ * - Failed to fetch dynamically imported module: terjadi di dev saat HMR/restart
+ */
+const NOISE_PATTERNS = [
+  /ResizeObserver loop/i,
+  /ResizeObserver loop completed with undelivered notifications/i,
+  /Failed to fetch dynamically imported module/i,
+  /error loading dynamically imported module/i,
+  /Importing a module script failed/i,
+]
+
+/**
+ * Cek apakah pesan error termasuk noise yang harus diabaikan.
+ */
+function isNoise(message) {
+  if (!message) return false
+  return NOISE_PATTERNS.some(pattern => pattern.test(message))
+}
+
+/**
  * Menghasilkan key unik untuk throttle berdasarkan tipe + pesan error.
  */
 function getErrorKey(type, message) {
@@ -77,6 +102,8 @@ async function saveError({ errorType, message, stack, component, severity = 'err
   
   // Jangan simpan error dari development internal jika tidak perlu
   if (!message) return
+  // Abaikan browser noise (ResizeObserver loop, HMR chunk errors, dll)
+  if (isNoise(message)) return
   if (isThrottled(errorType, message)) return
 
   // Jangan rekam error dari errorTracker itu sendiri
