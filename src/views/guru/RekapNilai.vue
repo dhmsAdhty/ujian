@@ -354,12 +354,12 @@ const openGradingModal = (result) => {
     <!-- Mode list -->
     <template v-else>
     <!-- Header -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
       <div>
         <h1 class="text-2xl font-semibold text-venus-900 tracking-tight">Rekap Nilai</h1>
         <p class="text-sm text-venus-500 mt-0.5">Pantau hasil ujian dan koreksi jawaban essay siswa.</p>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2">
         <button
           v-if="selectedExam"
           id="tour-btn-preview-rekap"
@@ -367,7 +367,8 @@ const openGradingModal = (result) => {
           class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-amber-200 text-amber-600 text-sm font-semibold hover:bg-amber-50 bg-white transition-colors"
         >
           <Eye :size="15" />
-          Preview POV Siswa
+          <span class="hidden sm:inline">Preview POV Siswa</span>
+          <span class="sm:hidden">Preview</span>
         </button>
         <button
           v-if="selectedExam && filteredResults.length > 0"
@@ -375,11 +376,13 @@ const openGradingModal = (result) => {
           class="flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-red-200 text-red-500 text-sm font-medium hover:border-red-400 hover:text-red-600 bg-white transition-colors"
         >
           <RotateCcw :size="15" />
-          Reset Semua
+          <span class="hidden sm:inline">Reset Semua</span>
+          <span class="sm:hidden">Reset</span>
         </button>
         <PrimaryButton @click="exportToExcel" :disabled="loading || filteredResults.length === 0">
           <FileSpreadsheet :size="16" />
-          Ekspor Excel
+          <span class="hidden sm:inline">Ekspor Excel</span>
+          <span class="sm:hidden">Ekspor</span>
         </PrimaryButton>
       </div>
     </div>
@@ -512,9 +515,110 @@ const openGradingModal = (result) => {
       </button>
     </div>
 
-    <!-- Table -->
+    <!-- Table / Card -->
     <GlassCard padding="p-0" class="overflow-hidden">
-      <div class="overflow-x-auto">
+
+      <!-- ===================== MOBILE CARD LIST (< md) ===================== -->
+      <template v-if="!loading">
+
+        <!-- Tab: Sudah Mengerjakan — Mobile -->
+        <div v-if="activeTab === 'mengerjakan'" class="md:hidden divide-y divide-venus-50">
+          <div v-if="filteredResults.length === 0" class="py-4">
+            <EmptyState title="Belum Ada Hasil" description="Belum ada siswa yang mengumpulkan jawaban." />
+          </div>
+          <div
+            v-for="res in filteredResults"
+            :key="res.id"
+            class="px-4 py-4 hover:bg-venus-50/40 transition-colors"
+          >
+            <div class="flex items-start gap-3">
+              <!-- Avatar -->
+              <div class="w-9 h-9 rounded-lg bg-primary-50 text-primary-600 text-sm font-semibold flex items-center justify-center shrink-0">
+                {{ res.profiles?.full_name?.charAt(0) || '?' }}
+              </div>
+              <!-- Info -->
+              <div class="min-w-0 flex-1">
+                <p class="font-medium text-venus-800 text-sm truncate">{{ res.profiles?.full_name || '—' }}</p>
+                <p class="text-xs text-venus-400 truncate">{{ res.profiles?.email || '' }}</p>
+                <p class="text-xs text-venus-500 mt-0.5 truncate">{{ res.ujian?.nama || '—' }} · {{ res.ujian?.mapel?.nama }} · {{ res.ujian?.kelas?.nama }}</p>
+                <!-- Badges -->
+                <div class="flex flex-wrap items-center gap-1.5 mt-2">
+                  <!-- Nilai -->
+                  <span
+                    class="inline-block px-2 py-0.5 rounded-lg text-xs font-bold"
+                    :class="res.pg_score == null ? 'text-venus-400 bg-venus-100' : res.pg_score >= 70 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'"
+                  >
+                    Nilai: {{ res.pg_score ?? '—' }}
+                  </span>
+                  <!-- Essay -->
+                  <span
+                    v-if="res.essayStatus === 'no_essay'"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-slate-50 text-slate-400"
+                  >
+                    No Essay
+                  </span>
+                  <span
+                    v-else
+                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold"
+                    :class="res.essayStatus === 'graded' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-600'"
+                  >
+                    <component :is="res.essayStatus === 'graded' ? CheckCircle2 : Clock" :size="10" />
+                    {{ res.essayStatus === 'graded' ? 'Sudah Dinilai' : 'Belum Dinilai' }}
+                  </span>
+                  <!-- Waktu -->
+                  <span class="text-[10px] text-venus-400">
+                    {{ new Date(res.submitted_at).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' }) }}
+                  </span>
+                </div>
+              </div>
+              <!-- Aksi -->
+              <div class="flex shrink-0 items-center gap-1.5">
+                <button
+                  type="button"
+                  @click="resetSatu(res)"
+                  class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-red-100 bg-white text-xs font-medium text-red-400 hover:border-red-300 hover:text-red-500 transition-colors"
+                >
+                  <RotateCcw :size="11" />
+                </button>
+                <button
+                  type="button"
+                  @click="openGradingModal(res)"
+                  class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-venus-200 bg-white text-xs font-medium text-venus-600 hover:text-primary-600 hover:border-primary-200 transition-colors shadow-ios-sm"
+                >
+                  <Edit3 :size="12" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab: Belum Mengerjakan — Mobile -->
+        <div v-else-if="activeTab === 'belum'" class="md:hidden divide-y divide-venus-50">
+          <div v-if="belumMengerjakan.length === 0" class="py-4">
+            <EmptyState title="Semua Sudah Mengerjakan" description="Seluruh siswa di kelas ini sudah mengumpulkan jawaban." />
+          </div>
+          <div
+            v-for="siswa in belumMengerjakan"
+            :key="siswa.id"
+            class="flex items-center gap-3 px-4 py-3.5 hover:bg-red-50/30 transition-colors"
+          >
+            <div class="w-8 h-8 rounded-lg bg-red-50 text-red-400 text-sm font-semibold flex items-center justify-center shrink-0">
+              {{ siswa.full_name?.charAt(0) || '?' }}
+            </div>
+            <div class="min-w-0 flex-1">
+              <p class="font-medium text-venus-800 text-sm truncate">{{ siswa.full_name || '—' }}</p>
+              <p class="text-[11px] text-venus-400 truncate">{{ siswa.email || '' }}</p>
+            </div>
+            <span class="inline-flex items-center gap-1 rounded-lg bg-red-50 px-2.5 py-1 text-[10px] font-semibold text-red-500 shrink-0">
+              <Clock :size="10" /> Belum
+            </span>
+          </div>
+        </div>
+
+      </template>
+
+      <!-- ===================== DESKTOP TABLE (md+) + Skeleton ===================== -->
+      <div class="hidden md:block overflow-x-auto">
         <table class="w-full text-left text-sm">
           <thead>
             <tr class="border-b border-venus-100 bg-venus-50/60">
@@ -545,7 +649,7 @@ const openGradingModal = (result) => {
             </tr>
           </tbody>
 
-          <!-- Data -->
+          <!-- Data: Sudah Mengerjakan -->
           <tbody v-else-if="activeTab === 'mengerjakan'" class="divide-y divide-venus-50">
             <tr v-for="res in filteredResults" :key="res.id" class="hover:bg-venus-50/40 transition-colors">
               <!-- Siswa -->
@@ -633,6 +737,7 @@ const openGradingModal = (result) => {
               </td>
             </tr>
           </tbody>
+
           <!-- Tab: Belum Mengerjakan -->
           <tbody v-else-if="activeTab === 'belum'" class="divide-y divide-venus-50">
             <tr v-if="belumMengerjakan.length === 0">

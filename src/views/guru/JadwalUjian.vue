@@ -522,14 +522,14 @@ const getEffectiveStatus = (ujian) => {
         </div>
 
         <!-- Search & Filters -->
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div class="relative flex-1">
+        <div class="flex flex-col gap-3">
+          <div class="relative">
             <Search :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-venus-400" />
             <input v-model="soalSearch" type="text" placeholder="Cari soal..." class="form-input pl-9 text-sm" />
           </div>
           <div class="flex items-center gap-2">
             <!-- Filter Kelas -->
-            <div class="w-40">
+            <div class="flex-1">
               <AppSelect
                 v-model="soalFilterKelas"
                 placeholder="Semua Kelas"
@@ -537,7 +537,7 @@ const getEffectiveStatus = (ujian) => {
               />
             </div>
             <!-- Filter Tipe -->
-            <div class="w-40">
+            <div class="flex-1">
               <AppSelect
                 v-model="soalFilterTipe"
                 placeholder="Semua Tipe"
@@ -698,14 +698,14 @@ const getEffectiveStatus = (ujian) => {
       </GlassCard>
     </template>
 
-    <!-- Table (hanya tampil saat form tidak aktif) -->
+    <!-- Table / Card (hanya tampil saat form tidak aktif) -->
     <GlassCard v-if="!showForm" padding="p-0" class="overflow-hidden">
       <div v-if="loading" class="divide-y divide-venus-50">
-        <div v-for="i in 4" :key="i" class="flex items-center gap-4 px-6 py-4">
+        <div v-for="i in 4" :key="i" class="flex items-center gap-4 px-4 py-4 sm:px-6">
           <div class="h-4 w-32 animate-pulse rounded-full bg-venus-100" />
           <div class="h-4 flex-1 animate-pulse rounded-full bg-venus-100" />
-          <div class="h-4 w-24 animate-pulse rounded-full bg-venus-100" />
-          <div class="h-4 w-20 animate-pulse rounded-full bg-venus-100" />
+          <div class="hidden h-4 w-24 animate-pulse rounded-full bg-venus-100 sm:block" />
+          <div class="hidden h-4 w-20 animate-pulse rounded-full bg-venus-100 sm:block" />
         </div>
       </div>
 
@@ -719,53 +719,43 @@ const getEffectiveStatus = (ujian) => {
         </template>
       </EmptyState>
 
-      <table v-else class="w-full text-left text-sm">
-        <thead>
-          <tr class="border-b border-venus-100 bg-venus-50/60">
-            <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Nama Ujian</th>
-            <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Mapel</th>
-            <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Kelas</th>
-            <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Soal</th>
-            <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Durasi</th>
-            <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Mulai</th>
-            <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Status</th>
-            <th class="px-6 py-3.5 text-right font-bold uppercase tracking-wider text-venus-400 text-xs px-6 py-3.5">Aksi</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-venus-50">
-          <tr v-for="(ujian, index) in ujianList" :key="ujian.id" class="transition-colors hover:bg-venus-50/50">
-            <td class="max-w-[200px] px-6 py-4">
-              <p class="truncate font-medium text-venus-800">{{ ujian.nama }}</p>
-            </td>
-            <td class="px-6 py-4 text-venus-600">{{ ujian.mapel?.nama || '—' }}</td>
-            <td class="px-6 py-4 text-venus-600">{{ ujian.kelas?.nama || '—' }}</td>
-            <td class="px-6 py-4">
-              <span class="inline-flex items-center gap-1 rounded-lg bg-venus-100 px-2 py-0.5 text-xs font-bold text-venus-600">
-                {{ ujian.jumlah_soal ?? '—' }}
-              </span>
-            </td>
-            <td class="px-6 py-4">
-              <div class="flex items-center gap-1 text-venus-600">
-                <Clock :size="13" />
-                {{ ujian.durasi }} menit
+      <template v-else>
+        <!-- ===================== MOBILE CARD LIST (< md) ===================== -->
+        <div class="divide-y divide-venus-50 md:hidden">
+          <div
+            v-for="(ujian, index) in ujianList"
+            :key="ujian.id"
+            class="px-4 py-4"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2 mb-1 flex-wrap">
+                  <span
+                    class="inline-flex rounded-lg px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+                    :class="getEffectiveStatus(ujian).badge"
+                  >
+                    {{ getEffectiveStatus(ujian).label }}
+                  </span>
+                  <span class="inline-flex items-center gap-1 rounded-lg bg-venus-100 px-2 py-0.5 text-[10px] font-bold text-venus-600">
+                    {{ ujian.jumlah_soal ?? '—' }} soal
+                  </span>
+                </div>
+                <p class="font-semibold text-venus-800 text-sm leading-snug">{{ ujian.nama }}</p>
+                <p class="text-xs text-venus-400 mt-0.5">
+                  {{ ujian.mapel?.nama || '—' }} · {{ ujian.kelas?.nama || '—' }}
+                </p>
+                <div class="flex items-center gap-1 text-xs text-venus-400 mt-1">
+                  <Clock :size="11" />
+                  {{ ujian.durasi }} mnt · {{ formatDate(ujian.tanggal_mulai) }}
+                </div>
               </div>
-            </td>
-            <td class="px-6 py-4 text-venus-500 text-xs">{{ formatDate(ujian.tanggal_mulai) }}</td>
-            <td class="px-6 py-4">
-              <span
-                class="inline-flex rounded-lg px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide"
-                :class="getEffectiveStatus(ujian).badge"
-              >
-                {{ getEffectiveStatus(ujian).label }}
-              </span>
-            </td>
-            <td class="px-6 py-4">
-              <div class="flex items-center justify-end gap-2">
+              <!-- Aksi -->
+              <div class="flex shrink-0 items-center gap-1.5">
                 <button
                   type="button"
                   :id="index === 0 ? 'tour-btn-preview-jadwal' : ''"
                   @click="openPreview(ujian.id)"
-                  class="pressable-soft rounded-lg border border-venus-200/80 bg-white p-1.5 text-venus-400 shadow-ios-sm hover:text-amber-500 active:opacity-70"
+                  class="pressable-soft rounded-lg border border-venus-200/80 bg-white p-2 text-venus-400 shadow-ios-sm hover:text-amber-500 active:opacity-70"
                   title="Preview POV Siswa"
                   aria-label="Preview POV Siswa"
                 >
@@ -774,7 +764,7 @@ const getEffectiveStatus = (ujian) => {
                 <button
                   type="button"
                   @click="openForm(ujian)"
-                  class="pressable-soft rounded-lg border border-venus-200/80 bg-white p-1.5 text-venus-400 shadow-ios-sm hover:text-primary-600 active:opacity-70"
+                  class="pressable-soft rounded-lg border border-venus-200/80 bg-white p-2 text-venus-400 shadow-ios-sm hover:text-primary-600 active:opacity-70"
                   aria-label="Edit ujian"
                 >
                   <Pencil :size="15" />
@@ -782,16 +772,93 @@ const getEffectiveStatus = (ujian) => {
                 <button
                   type="button"
                   @click="handleDelete(ujian)"
-                  class="pressable-soft rounded-lg border border-venus-200/80 bg-white p-1.5 text-venus-400 shadow-ios-sm hover:text-red-500 active:opacity-70"
+                  class="pressable-soft rounded-lg border border-venus-200/80 bg-white p-2 text-venus-400 shadow-ios-sm hover:text-red-500 active:opacity-70"
                   aria-label="Hapus ujian"
                 >
                   <Trash2 :size="15" />
                 </button>
               </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===================== DESKTOP TABLE (md+) ===================== -->
+        <div class="hidden md:block overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead>
+              <tr class="border-b border-venus-100 bg-venus-50/60">
+                <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Nama Ujian</th>
+                <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Mapel</th>
+                <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Kelas</th>
+                <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Soal</th>
+                <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Durasi</th>
+                <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Mulai</th>
+                <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Status</th>
+                <th class="px-6 py-3.5 text-right text-xs font-bold uppercase tracking-wider text-venus-400">Aksi</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-venus-50">
+              <tr v-for="(ujian, index) in ujianList" :key="ujian.id" class="transition-colors hover:bg-venus-50/50">
+                <td class="max-w-[200px] px-6 py-4">
+                  <p class="truncate font-medium text-venus-800">{{ ujian.nama }}</p>
+                </td>
+                <td class="px-6 py-4 text-venus-600">{{ ujian.mapel?.nama || '—' }}</td>
+                <td class="px-6 py-4 text-venus-600">{{ ujian.kelas?.nama || '—' }}</td>
+                <td class="px-6 py-4">
+                  <span class="inline-flex items-center gap-1 rounded-lg bg-venus-100 px-2 py-0.5 text-xs font-bold text-venus-600">
+                    {{ ujian.jumlah_soal ?? '—' }}
+                  </span>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="flex items-center gap-1 text-venus-600">
+                    <Clock :size="13" />
+                    {{ ujian.durasi }} menit
+                  </div>
+                </td>
+                <td class="px-6 py-4 text-venus-500 text-xs">{{ formatDate(ujian.tanggal_mulai) }}</td>
+                <td class="px-6 py-4">
+                  <span
+                    class="inline-flex rounded-lg px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide"
+                    :class="getEffectiveStatus(ujian).badge"
+                  >
+                    {{ getEffectiveStatus(ujian).label }}
+                  </span>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      :id="index === 0 ? 'tour-btn-preview-jadwal' : ''"
+                      @click="openPreview(ujian.id)"
+                      class="pressable-soft rounded-lg border border-venus-200/80 bg-white p-1.5 text-venus-400 shadow-ios-sm hover:text-amber-500 active:opacity-70"
+                      title="Preview POV Siswa"
+                      aria-label="Preview POV Siswa"
+                    >
+                      <Eye :size="15" />
+                    </button>
+                    <button
+                      type="button"
+                      @click="openForm(ujian)"
+                      class="pressable-soft rounded-lg border border-venus-200/80 bg-white p-1.5 text-venus-400 shadow-ios-sm hover:text-primary-600 active:opacity-70"
+                      aria-label="Edit ujian"
+                    >
+                      <Pencil :size="15" />
+                    </button>
+                    <button
+                      type="button"
+                      @click="handleDelete(ujian)"
+                      class="pressable-soft rounded-lg border border-venus-200/80 bg-white p-1.5 text-venus-400 shadow-ios-sm hover:text-red-500 active:opacity-70"
+                      aria-label="Hapus ujian"
+                    >
+                      <Trash2 :size="15" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </template>
     </GlassCard>
 
     <!-- Preview Modal POV Siswa -->

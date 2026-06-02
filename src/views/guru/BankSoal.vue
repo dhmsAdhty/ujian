@@ -132,32 +132,33 @@ const tipeBadge = (tipe) => {
       </div>
     </GlassCard>
 
-    <!-- Table -->
+    <!-- Table / Card -->
     <GlassCard padding="p-0" class="overflow-hidden">
       <!-- Bulk action bar -->
       <div
         v-if="selectedIds.size > 0"
-        class="flex items-center justify-between border-b border-red-100 bg-red-50/80 px-6 py-3"
+        class="flex items-center justify-between border-b border-red-100 bg-red-50/80 px-4 py-3 sm:px-6"
       >
         <span class="text-sm font-semibold text-red-700">{{ selectedIds.size }} soal dipilih</span>
         <button
           type="button"
           @click="handleBulkDelete"
-          class="flex items-center gap-2 rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white shadow-ios-sm transition-colors hover:bg-red-600 active:bg-red-700"
+          class="flex items-center gap-2 rounded-xl bg-red-500 px-3 py-2 text-sm font-semibold text-white shadow-ios-sm transition-colors hover:bg-red-600 active:bg-red-700 sm:px-4"
         >
           <Trash2 :size="15" />
-          Hapus yang Dipilih
+          <span class="hidden sm:inline">Hapus yang Dipilih</span>
+          <span class="sm:hidden">Hapus</span>
         </button>
       </div>
 
       <!-- Skeleton -->
       <div v-if="loading" class="divide-y divide-venus-50">
-        <div v-for="i in 5" :key="i" class="flex items-center gap-4 px-6 py-4">
+        <div v-for="i in 5" :key="i" class="flex items-center gap-4 px-4 py-4 sm:px-6">
           <div class="h-4 w-16 animate-pulse rounded-full bg-venus-100" />
           <div class="h-4 flex-1 animate-pulse rounded-full bg-venus-100" />
           <div class="h-4 w-24 animate-pulse rounded-full bg-venus-100" />
-          <div class="h-4 w-20 animate-pulse rounded-full bg-venus-100" />
-          <div class="h-4 w-16 animate-pulse rounded-full bg-venus-100" />
+          <div class="hidden h-4 w-20 animate-pulse rounded-full bg-venus-100 sm:block" />
+          <div class="hidden h-4 w-16 animate-pulse rounded-full bg-venus-100 sm:block" />
         </div>
       </div>
 
@@ -172,94 +173,167 @@ const tipeBadge = (tipe) => {
         </template>
       </EmptyState>
 
-      <!-- Table -->
-      <table v-else class="w-full text-left text-sm">
-        <thead>
-          <tr class="border-b border-venus-100 bg-venus-50/60">
-            <th class="px-6 py-3.5">
-              <input
-                type="checkbox"
-                :checked="isAllSelected"
-                @change="toggleAll"
-                :ref="el => { if (el) el.indeterminate = isIndeterminate }"
-                class="h-4 w-4 cursor-pointer rounded border-venus-300 accent-primary-600"
-                aria-label="Pilih semua"
-              />
-            </th>
-            <th class="px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400 text-center w-12">No.</th>
-            <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Tipe</th>
-            <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Pertanyaan</th>
-            <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Mapel</th>
-            <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Kelas</th>
-            <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Dibuat</th>
-            <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400 text-right">Aksi</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-venus-50">
-          <tr
+      <template v-else>
+        <!-- ===================== MOBILE CARD LIST (< md) ===================== -->
+        <div class="divide-y divide-venus-50 md:hidden">
+          <!-- Select all bar -->
+          <div class="flex items-center gap-3 bg-venus-50/60 px-4 py-2.5">
+            <input
+              type="checkbox"
+              :checked="isAllSelected"
+              @change="toggleAll"
+              :ref="el => { if (el) el.indeterminate = isIndeterminate }"
+              class="h-4 w-4 cursor-pointer rounded border-venus-300 accent-primary-600"
+              aria-label="Pilih semua"
+            />
+            <span class="text-xs font-semibold text-venus-500">Pilih Semua ({{ items.length }})</span>
+          </div>
+
+          <div
             v-for="(soal, index) in items"
             :key="soal.id"
-            class="group transition-colors hover:bg-venus-50/50"
-            :class="selectedIds.has(soal.id) ? 'bg-primary-50/40' : ''"
+            class="flex items-start gap-3 px-4 py-3.5 transition-colors"
+            :class="selectedIds.has(soal.id) ? 'bg-primary-50/40' : 'hover:bg-venus-50/40'"
           >
-            <td class="px-6 py-4">
-              <input
-                type="checkbox"
-                :checked="selectedIds.has(soal.id)"
-                @change="toggleOne(soal.id)"
-                class="h-4 w-4 cursor-pointer rounded border-venus-300 accent-primary-600"
-                :aria-label="`Pilih soal ${soal.id}`"
-              />
-            </td>
-            <td class="px-4 py-4 text-center">
-              <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-venus-100 text-xs font-bold text-venus-500">
-                {{ (page - 1) * 25 + index + 1 }}
-              </span>
-            </td>
-            <td class="px-6 py-4">
-              <span
-                class="inline-flex rounded-lg px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide"
-                :class="tipeBadge(soal.tipe_soal).cls"
-              >
-                {{ tipeBadge(soal.tipe_soal).label }}
-              </span>
-            </td>
-            <td class="max-w-xs px-6 py-4">
-              <p class="truncate font-medium text-venus-800">{{ stripHtml(soal.konten) || soal.judul }}</p>
-            </td>
-            <td class="px-6 py-4 text-venus-600">{{ soal.mapel?.nama || '—' }}</td>
-            <td class="px-6 py-4 text-venus-600">{{ soal.kelas?.nama || '—' }}</td>
-            <td class="px-6 py-4 text-venus-400">
-              {{ new Date(soal.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) }}
-            </td>
-            <td class="px-6 py-4">
-              <div class="flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  @click="router.push(`/guru/soal/edit/${soal.id}`)"
-                  class="pressable-soft rounded-lg border border-venus-200/80 bg-white p-1.5 text-venus-400 shadow-ios-sm transition-[transform,opacity] duration-200 ease-ios hover:text-primary-600 active:opacity-70"
-                  aria-label="Edit soal"
-                >
-                  <Edit :size="15" />
-                </button>
-                <button
-                  type="button"
-                  @click="handleDelete(soal.id)"
-                  class="pressable-soft rounded-lg border border-venus-200/80 bg-white p-1.5 text-venus-400 shadow-ios-sm transition-[transform,opacity] duration-200 ease-ios hover:text-red-500 active:opacity-70"
-                  aria-label="Hapus soal"
-                >
-                  <Trash2 :size="15" />
-                </button>
+            <!-- Checkbox -->
+            <input
+              type="checkbox"
+              :checked="selectedIds.has(soal.id)"
+              @change="toggleOne(soal.id)"
+              class="mt-1 h-4 w-4 shrink-0 cursor-pointer rounded border-venus-300 accent-primary-600"
+              :aria-label="`Pilih soal ${soal.id}`"
+            />
+            <!-- Nomor -->
+            <span class="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-venus-100 text-xs font-bold text-venus-500">
+              {{ (page - 1) * 25 + index + 1 }}
+            </span>
+            <!-- Konten -->
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-1.5 mb-1">
+                <span class="inline-flex rounded-lg px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide" :class="tipeBadge(soal.tipe_soal).cls">
+                  {{ tipeBadge(soal.tipe_soal).label }}
+                </span>
               </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+              <p class="truncate text-sm font-medium text-venus-800">{{ stripHtml(soal.konten) || soal.judul }}</p>
+              <p class="mt-0.5 text-xs text-venus-400">
+                {{ soal.mapel?.nama || '—' }}
+                <template v-if="soal.kelas?.nama"> · {{ soal.kelas.nama }}</template>
+                · {{ new Date(soal.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) }}
+              </p>
+            </div>
+            <!-- Aksi -->
+            <div class="flex shrink-0 items-center gap-1.5">
+              <button
+                type="button"
+                @click="router.push(`/guru/soal/edit/${soal.id}`)"
+                class="pressable-soft rounded-lg border border-venus-200/80 bg-white p-2 text-venus-400 shadow-ios-sm transition-[transform,opacity] duration-200 ease-ios hover:text-primary-600 active:opacity-70"
+                aria-label="Edit soal"
+              >
+                <Edit :size="15" />
+              </button>
+              <button
+                type="button"
+                @click="handleDelete(soal.id)"
+                class="pressable-soft rounded-lg border border-venus-200/80 bg-white p-2 text-venus-400 shadow-ios-sm transition-[transform,opacity] duration-200 ease-ios hover:text-red-500 active:opacity-70"
+                aria-label="Hapus soal"
+              >
+                <Trash2 :size="15" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===================== DESKTOP TABLE (md+) ===================== -->
+        <div class="hidden md:block overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead>
+              <tr class="border-b border-venus-100 bg-venus-50/60">
+                <th class="px-6 py-3.5">
+                  <input
+                    type="checkbox"
+                    :checked="isAllSelected"
+                    @change="toggleAll"
+                    :ref="el => { if (el) el.indeterminate = isIndeterminate }"
+                    class="h-4 w-4 cursor-pointer rounded border-venus-300 accent-primary-600"
+                    aria-label="Pilih semua"
+                  />
+                </th>
+                <th class="px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400 text-center w-12">No.</th>
+                <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Tipe</th>
+                <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Pertanyaan</th>
+                <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Mapel</th>
+                <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Kelas</th>
+                <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Dibuat</th>
+                <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-venus-50">
+              <tr
+                v-for="(soal, index) in items"
+                :key="soal.id"
+                class="group transition-colors hover:bg-venus-50/50"
+                :class="selectedIds.has(soal.id) ? 'bg-primary-50/40' : ''"
+              >
+                <td class="px-6 py-4">
+                  <input
+                    type="checkbox"
+                    :checked="selectedIds.has(soal.id)"
+                    @change="toggleOne(soal.id)"
+                    class="h-4 w-4 cursor-pointer rounded border-venus-300 accent-primary-600"
+                    :aria-label="`Pilih soal ${soal.id}`"
+                  />
+                </td>
+                <td class="px-4 py-4 text-center">
+                  <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-venus-100 text-xs font-bold text-venus-500">
+                    {{ (page - 1) * 25 + index + 1 }}
+                  </span>
+                </td>
+                <td class="px-6 py-4">
+                  <span
+                    class="inline-flex rounded-lg px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide"
+                    :class="tipeBadge(soal.tipe_soal).cls"
+                  >
+                    {{ tipeBadge(soal.tipe_soal).label }}
+                  </span>
+                </td>
+                <td class="max-w-xs px-6 py-4">
+                  <p class="truncate font-medium text-venus-800">{{ stripHtml(soal.konten) || soal.judul }}</p>
+                </td>
+                <td class="px-6 py-4 text-venus-600">{{ soal.mapel?.nama || '—' }}</td>
+                <td class="px-6 py-4 text-venus-600">{{ soal.kelas?.nama || '—' }}</td>
+                <td class="px-6 py-4 text-venus-400">
+                  {{ new Date(soal.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) }}
+                </td>
+                <td class="px-6 py-4">
+                  <div class="flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      @click="router.push(`/guru/soal/edit/${soal.id}`)"
+                      class="pressable-soft rounded-lg border border-venus-200/80 bg-white p-1.5 text-venus-400 shadow-ios-sm transition-[transform,opacity] duration-200 ease-ios hover:text-primary-600 active:opacity-70"
+                      aria-label="Edit soal"
+                    >
+                      <Edit :size="15" />
+                    </button>
+                    <button
+                      type="button"
+                      @click="handleDelete(soal.id)"
+                      class="pressable-soft rounded-lg border border-venus-200/80 bg-white p-1.5 text-venus-400 shadow-ios-sm transition-[transform,opacity] duration-200 ease-ios hover:text-red-500 active:opacity-70"
+                      aria-label="Hapus soal"
+                    >
+                      <Trash2 :size="15" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </template>
 
       <!-- Pagination -->
-      <div v-if="!loading && items.length > 0" class="flex items-center justify-between border-t border-venus-100 px-6 py-4">
+      <div v-if="!loading && items.length > 0" class="flex items-center justify-between border-t border-venus-100 px-4 py-4 sm:px-6">
         <p class="text-xs text-venus-400">
-          Menampilkan {{ (page - 1) * 25 + 1 }}–{{ Math.min(page * 25, totalItems) }} dari {{ totalItems }} soal
+          {{ (page - 1) * 25 + 1 }}–{{ Math.min(page * 25, totalItems) }} / {{ totalItems }}
         </p>
         <div class="flex items-center gap-2">
           <button

@@ -168,9 +168,81 @@ onMounted(async () => {
       </div>
     </GlassCard>
 
-    <!-- Table -->
+    <!-- Table / Card -->
     <GlassCard padding="p-0" class="overflow-hidden">
-      <div class="overflow-x-auto">
+
+      <!-- ===================== MOBILE CARD LIST (< md) ===================== -->
+      <template v-if="!loading">
+        <div v-if="filteredResults.length === 0" class="md:hidden py-4">
+          <EmptyState title="Tidak Ada Data" description="Belum ada data pengerjaan untuk filter ini." />
+        </div>
+        <div v-else class="divide-y divide-venus-50 md:hidden">
+          <div
+            v-for="res in filteredResults"
+            :key="res.id"
+            class="px-4 py-4 hover:bg-venus-50/40 transition-colors"
+          >
+            <div class="flex items-start gap-3">
+              <!-- Avatar -->
+              <div class="w-9 h-9 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center font-bold shrink-0">
+                {{ res.profiles?.full_name?.charAt(0) || '?' }}
+              </div>
+              <!-- Info -->
+              <div class="min-w-0 flex-1">
+                <p class="font-medium text-venus-900 text-sm truncate">{{ res.profiles?.full_name || '—' }}</p>
+                <p class="text-[11px] text-venus-400 truncate">{{ res.profiles?.email || '—' }}</p>
+                <p class="text-xs text-venus-500 mt-0.5 truncate">{{ res.ujian?.nama || '—' }} · {{ res.ujian?.mapel?.nama }} · {{ res.ujian?.kelas?.nama }}</p>
+                <!-- Badges -->
+                <div class="flex flex-wrap items-center gap-2 mt-2">
+                  <!-- Pelanggaran -->
+                  <div
+                    class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-bold text-xs"
+                    :class="res.violations > 0 ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'"
+                  >
+                    <AlertCircle v-if="res.violations > 0" :size="11" />
+                    <CheckCircle2 v-else :size="11" />
+                    {{ res.violations || 0 }}x pelanggaran
+                  </div>
+                  <!-- Progres -->
+                  <div class="flex items-center gap-1.5">
+                    <div class="w-16 h-1.5 bg-venus-100 rounded-full overflow-hidden">
+                      <div
+                        class="h-full bg-primary-500 transition-all duration-500"
+                        :style="{ width: `${(getAnsweredCount(res.answers) / res.total_soal) * 100}%` }"
+                      ></div>
+                    </div>
+                    <span class="text-[10px] font-semibold text-venus-600">
+                      {{ getAnsweredCount(res.answers) }}/{{ res.total_soal }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <!-- Aksi -->
+              <button
+                @click="resetViolation(res)"
+                class="inline-flex shrink-0 items-center gap-1 px-2.5 py-1.5 rounded-lg border border-venus-200 bg-white text-xs font-medium text-venus-600 hover:bg-venus-50 hover:text-primary-600 transition-colors shadow-sm"
+                title="Reset Pelanggaran"
+              >
+                <RotateCcw :size="13" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- Loading skeleton (mobile) -->
+      <div v-if="loading" class="md:hidden divide-y divide-venus-50">
+        <div v-for="i in 4" :key="i" class="flex items-center gap-3 px-4 py-4">
+          <div class="h-9 w-9 shrink-0 animate-pulse rounded-xl bg-venus-100" />
+          <div class="flex-1 space-y-2">
+            <div class="h-3.5 animate-pulse rounded-full bg-venus-100" />
+            <div class="h-3 w-2/3 animate-pulse rounded-full bg-venus-100" />
+          </div>
+        </div>
+      </div>
+
+      <!-- ===================== DESKTOP TABLE (md+) ===================== -->
+      <div class="hidden md:block overflow-x-auto">
         <table class="w-full text-left text-sm">
           <thead>
             <tr class="border-b border-venus-100 bg-venus-50/60">
@@ -195,9 +267,9 @@ onMounted(async () => {
           <tbody v-else-if="filteredResults.length === 0">
             <tr>
               <td colspan="5">
-                <EmptyState 
-                  title="Tidak Ada Data" 
-                  description="Belum ada data pengerjaan untuk filter ini." 
+                <EmptyState
+                  title="Tidak Ada Data"
+                  description="Belum ada data pengerjaan untuk filter ini."
                 />
               </td>
             </tr>
@@ -225,7 +297,7 @@ onMounted(async () => {
                 <p class="text-[11px] text-venus-400 ml-5">{{ res.ujian?.mapel?.nama }} · {{ res.ujian?.kelas?.nama }}</p>
               </td>
               <td class="px-6 py-4 text-center">
-                <div 
+                <div
                   class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-bold text-xs"
                   :class="res.violations > 0 ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'"
                 >
@@ -237,7 +309,7 @@ onMounted(async () => {
               <td class="px-6 py-4">
                 <div class="flex flex-col items-center">
                   <div class="w-full max-w-[120px] h-1.5 bg-venus-100 rounded-full overflow-hidden mb-1.5">
-                    <div 
+                    <div
                       class="h-full bg-primary-500 transition-all duration-500"
                       :style="{ width: `${(getAnsweredCount(res.answers) / res.total_soal) * 100}%` }"
                     ></div>
