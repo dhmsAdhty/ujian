@@ -271,8 +271,8 @@ export function useExamEngine(examId, { onViolationSubmit, onTimerEnd } = {}) {
       ? parseFloat((pgCorrect / totalSoalPg * activeMaxPg).toFixed(2))
       : 0
 
-    // Cek apakah ada row reset (submitted_at null) untuk ujian ini
-    const { data: existingRow } = await supabase
+    // Cek apakah ada row in-progress (submitted_at null) untuk ujian ini
+    const { data: inProgressRow } = await supabase
       .from('exam_results')
       .select('id')
       .eq('exam_id', examId)
@@ -280,8 +280,24 @@ export function useExamEngine(examId, { onViolationSubmit, onTimerEnd } = {}) {
       .is('submitted_at', null)
       .maybeSingle()
 
+    // Jika tidak ada row in-progress, cek apakah sudah ada row yang pernah di-submit
+    // (mencegah INSERT duplikat jika submit berjalan 2x akibat race condition / retry)
+    let rowToUpdate = inProgressRow
+    if (!rowToUpdate) {
+      const { data: alreadySubmitted } = await supabase
+        .from('exam_results')
+        .select('id')
+        .eq('exam_id', examId)
+        .eq('siswa_id', authStore.user?.id)
+        .not('submitted_at', 'is', null)
+        .order('submitted_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      rowToUpdate = alreadySubmitted || null
+    }
+
     let error
-    if (existingRow) {
+    if (rowToUpdate) {
       ;({ error } = await supabase.from('exam_results').update({
         answers: answers.value,
         violations: violations.value,
@@ -289,7 +305,7 @@ export function useExamEngine(examId, { onViolationSubmit, onTimerEnd } = {}) {
         pg_correct: pgCorrect,
         total_soal: totalSoal,
         submitted_at: new Date().toISOString()
-      }).eq('id', existingRow.id))
+      }).eq('id', rowToUpdate.id))
     } else {
       ;({ error } = await supabase.from('exam_results').insert([{
         exam_id: examId,

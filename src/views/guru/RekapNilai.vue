@@ -163,6 +163,7 @@ const fetchData = async () => {
   let query = supabase
     .from('exam_results')
     .select('*, profiles!exam_results_siswa_id_fkey(full_name, email), ujian(id, nama, kelas_id, mapel(nama), kelas(nama))')
+    .not('submitted_at', 'is', null)
     .order('submitted_at', { ascending: false })
 
   // Keamanan: selalu batasi ke examIds milik guru ini terlebih dahulu,
@@ -179,7 +180,7 @@ const fetchData = async () => {
   if (error) {
     Swal.fire('Error', 'Gagal memuat rekap nilai', 'error')
   } else {
-    results.value = (resultData || []).map(r => {
+    const mapped = (resultData || []).map(r => {
       const essayScoreObj = r.essay_score && typeof r.essay_score === 'object' ? r.essay_score : null
       const isGraded = essayScoreObj && Object.keys(essayScoreObj).length > 0
       const hasEssay = !!hasEssayMap[r.exam_id]
@@ -196,6 +197,32 @@ const fetchData = async () => {
         essayStatus: status
       }
     })
+
+    // Deduplicate: jika ada >1 baris untuk siswa yang sama pada ujian yang sama
+    // (terjadi akibat race condition saat submit), ambil baris terbaik saja:
+    // prioritas → essay sudah dinilai > pg_score lebih tinggi > submitted_at lebih baru
+    const bestMap = new Map()
+    mapped.forEach(r => {
+      const key = `${r.siswa_id}__${r.exam_id}`
+      const existing = bestMap.get(key)
+      if (!existing) {
+        bestMap.set(key, r)
+      } else {
+        // Pilih yang essaynya sudah dinilai
+        const rGraded = r.essayStatus === 'graded'
+        const exGraded = existing.essayStatus === 'graded'
+        if (rGraded && !exGraded) { bestMap.set(key, r); return }
+        if (!rGraded && exGraded) { return }
+        // Keduanya sama status essay — pilih pg_score lebih tinggi
+        const rScore = r.pg_score ?? -1
+        const exScore = existing.pg_score ?? -1
+        if (rScore > exScore) { bestMap.set(key, r); return }
+        if (rScore < exScore) { return }
+        // Sama pg_score — pilih submitted_at terbaru
+        if (r.submitted_at > existing.submitted_at) bestMap.set(key, r)
+      }
+    })
+    results.value = Array.from(bestMap.values())
   }
 
   // Fetch siswa di kelas ujian yang dipilih
