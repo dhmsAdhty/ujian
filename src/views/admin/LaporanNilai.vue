@@ -128,13 +128,36 @@ const fetchData = async () => {
   if (resultRes.error) {
     Swal.fire('Error', 'Gagal memuat laporan nilai', 'error')
   } else {
-    results.value = (resultRes.data || []).map(r => {
+    const mapped = (resultRes.data || []).map(r => {
       const essayScoreObj = r.essay_score && typeof r.essay_score === 'object' ? r.essay_score : null
       const essayMarks = essayScoreObj ? Object.values(essayScoreObj) : []
       const benar = essayMarks.filter(v => v === true).length
       const total = essayMarks.length
       return { ...r, essayBenar: total > 0 ? benar : null, essayTotal: total, essayStatus: total > 0 ? 'graded' : 'pending' }
     })
+
+    // Deduplicate: jika ada >1 baris untuk siswa yang sama pada ujian yang sama
+    // (akibat race condition saat submit), ambil baris terbaik saja:
+    // prioritas → essay sudah dinilai > pg_score lebih tinggi > submitted_at lebih baru
+    const bestMap = new Map()
+    mapped.forEach(r => {
+      const key = `${r.siswa_id}__${r.exam_id}`
+      const existing = bestMap.get(key)
+      if (!existing) {
+        bestMap.set(key, r)
+      } else {
+        const rGraded = r.essayStatus === 'graded'
+        const exGraded = existing.essayStatus === 'graded'
+        if (rGraded && !exGraded) { bestMap.set(key, r); return }
+        if (!rGraded && exGraded) { return }
+        const rScore = r.pg_score ?? -1
+        const exScore = existing.pg_score ?? -1
+        if (rScore > exScore) { bestMap.set(key, r); return }
+        if (rScore < exScore) { return }
+        if (r.submitted_at > existing.submitted_at) bestMap.set(key, r)
+      }
+    })
+    results.value = Array.from(bestMap.values())
   }
   loading.value = false
 }
