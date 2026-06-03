@@ -49,7 +49,22 @@ const fetchResults = async () => {
   if (error) {
     console.error('Error fetching monitoring data:', error)
   } else {
-    results.value = data || []
+    // Deduplikasi: jika ada >1 baris untuk siswa yang sama pada ujian yang sama
+    // (race condition saat submit), ambil yang violations-nya paling tinggi
+    const bestMap = new Map()
+    ;(data || []).forEach(r => {
+      const key = `${r.siswa_id}__${r.exam_id}`
+      const existing = bestMap.get(key)
+      if (!existing) {
+        bestMap.set(key, r)
+      } else {
+        // Pilih baris dengan violations lebih tinggi
+        if ((r.violations || 0) > (existing.violations || 0)) {
+          bestMap.set(key, r)
+        }
+      }
+    })
+    results.value = Array.from(bestMap.values())
   }
   loading.value = false
 }
@@ -71,33 +86,35 @@ const stats = computed(() => {
 
 const resetViolation = async (res) => {
   const confirm = await Swal.fire({
-    title: 'Reset Pelanggaran?',
-    text: `Pelanggaran ${res.profiles?.full_name} akan direset menjadi 0.`,
+    title: 'Reset Jawaban?',
+    text: `Jawaban ${res.profiles?.full_name} akan dihapus dan siswa bisa mengerjakan ulang.`,
     icon: 'warning',
     showCancelButton: true,
     confirmButtonText: 'Ya, Reset',
     cancelButtonText: 'Batal',
-    confirmButtonColor: '#4318ff'
+    confirmButtonColor: '#ef4444'
   })
 
   if (!confirm.isConfirmed) return
 
-  const { error } = await supabase
+  // Hapus SEMUA baris duplikat untuk siswa + ujian ini (bukan hanya by id)
+  // agar race condition yang menghasilkan duplikat ikut terbersihkan
+  const { error: delErr } = await supabase
     .from('exam_results')
-    .update({ violations: 0 })
-    .eq('id', res.id)
+    .delete()
+    .eq('siswa_id', res.siswa_id)
+    .eq('exam_id', res.exam_id)
 
-  if (error) {
-    Swal.fire('Gagal', error.message, 'error')
-  } else {
-    Swal.fire({
-      icon: 'success',
-      title: 'Pelanggaran direset',
-      timer: 1200,
-      showConfirmButton: false
-    })
-    fetchResults()
+  if (delErr) {
+    // Fallback: coba reset (update) baris ini saja jika delete gagal
+    const { error: updErr } = await supabase.from('exam_results')
+      .update({ answers: {}, pg_score: null, essay_score: null, submitted_at: null, violations: 0 })
+      .eq('id', res.id)
+    if (updErr) return Swal.fire('Gagal', updErr.message, 'error')
   }
+
+  Swal.fire({ icon: 'success', title: 'Jawaban direset', timer: 1200, showConfirmButton: false })
+  fetchResults()
 }
 
 const getAnsweredCount = (answers) => {
@@ -221,7 +238,7 @@ onMounted(async () => {
               <button
                 @click="resetViolation(res)"
                 class="inline-flex shrink-0 items-center gap-1 px-2.5 py-1.5 rounded-lg border border-venus-200 bg-white text-xs font-medium text-venus-600 hover:bg-venus-50 hover:text-primary-600 transition-colors shadow-sm"
-                title="Reset Pelanggaran"
+                title="Reset Jawaban"
               >
                 <RotateCcw :size="13" />
               </button>
@@ -323,7 +340,7 @@ onMounted(async () => {
                 <button
                   @click="resetViolation(res)"
                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-venus-200 bg-white text-xs font-medium text-venus-600 hover:bg-venus-50 hover:text-primary-600 transition-colors shadow-sm"
-                  title="Reset Pelanggaran"
+                  title="Reset Jawaban"
                 >
                   <RotateCcw :size="14" />
                   Reset
