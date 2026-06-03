@@ -121,10 +121,10 @@ const resetForm = () => {
 </script>
 
 <template>
-  <div class="flex min-h-screen w-full items-center justify-center bg-venus-50 px-4 py-12">
+  <div class="flex min-h-[100dvh] w-full items-center justify-center bg-venus-50 p-4 sm:p-8 relative">
 
     <!-- Brand mark -->
-    <div class="absolute left-6 top-6 flex items-center gap-2">
+    <div class="hidden sm:flex absolute left-6 top-6 items-center gap-2">
       <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-600 text-white shadow-ios-sm">
         <MessageSquarePlus :size="18" stroke-width="2" />
       </div>
@@ -136,7 +136,7 @@ const resetForm = () => {
       v-motion
       :initial="{ opacity: 0, y: 16 }"
       :enter="{ opacity: 1, y: 0, transition: { duration: 420 } }"
-      class="w-full max-w-[480px] rounded-3xl border border-venus-100 bg-white px-8 py-10 sm:px-10"
+      class="w-full max-w-[480px] rounded-2xl sm:rounded-3xl border border-venus-100 bg-white px-5 py-8 sm:px-10 sm:py-10 shadow-sm sm:shadow-none"
     >
 
       <!-- Success State -->
