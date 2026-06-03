@@ -167,12 +167,16 @@ const resetJawaban = async () => {
   })
   if (!confirm.isConfirmed) return
 
+  // Hapus SEMUA baris duplikat untuk siswa + ujian ini (by siswa_id + exam_id)
+  // agar race condition yang menghasilkan duplikat ikut terbersihkan
   const { error: deleteError } = await supabase
     .from('exam_results')
     .delete()
-    .eq('id', props.result.id)
+    .eq('siswa_id', props.result.siswa_id)
+    .eq('exam_id', props.result.exam_id)
 
   if (deleteError) {
+    // Fallback: update baris ini saja jika delete gagal
     const { error: updateError } = await supabase
       .from('exam_results')
       .update({ answers: {}, pg_score: null, essay_score: null, submitted_at: null, violations: 0 })
