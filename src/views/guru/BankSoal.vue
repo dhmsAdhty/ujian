@@ -14,7 +14,10 @@ const mapelId = route.params.mapelId || null
 const mapelNama = ref('')
 const searchQuery = ref('')
 const typeFilter = ref('')
+const kelasFilter = ref('')
 const page = ref(1)
+
+const kelasList = ref([])
 
 // Ambil nama mapel untuk breadcrumb
 if (mapelId) {
@@ -22,6 +25,11 @@ if (mapelId) {
     if (data) mapelNama.value = data.nama
   })
 }
+
+// Ambil daftar kelas untuk filter
+supabase.from('kelas').select('id, nama').order('nama').then(({ data }) => {
+  if (data) kelasList.value = data
+})
 
 // Bulk select
 const selectedIds = ref(new Set())
@@ -44,7 +52,7 @@ const toggleOne = (id) => {
 
 const fetchData = () => {
   selectedIds.value.clear()
-  fetchGuruSoal({ page: page.value, pageSize: 25, search: searchQuery.value, tipe: typeFilter.value, mapelId: mapelId || '' })
+  fetchGuruSoal({ page: page.value, pageSize: 25, search: searchQuery.value, tipe: typeFilter.value, mapelId: mapelId || '', kelasId: kelasFilter.value })
 }
 
 onMounted(fetchData)
@@ -55,7 +63,7 @@ watch(searchQuery, () => {
   searchTimeout = setTimeout(() => { page.value = 1; fetchData() }, 500)
 })
 
-watch([typeFilter, page], fetchData)
+watch([typeFilter, kelasFilter, page], fetchData)
 
 const handleDelete = async (id) => {
   const success = await softDeleteSoal(id)
@@ -120,9 +128,16 @@ const tipeBadge = (tipe) => {
           <FormInput v-model="searchQuery" placeholder="Cari soal..." :icon="Search" />
         </div>
         <AppSelect
+          v-model="kelasFilter"
+          placeholder="Semua Kelas"
+          :options="[{ value: '', label: 'Semua Kelas' }, ...kelasList.map(k => ({ value: k.id, label: k.nama }))]"
+          class="sm:w-48"
+        />
+        <AppSelect
           v-model="typeFilter"
           placeholder="Semua Tipe"
           :options="[
+            { value: '', label: 'Semua Tipe' },
             { value: 'pilihan_ganda', label: 'Pilihan Ganda' },
             { value: 'pilihan_ganda_kompleks', label: 'PG Kompleks' },
             { value: 'essay', label: 'Essay' },
