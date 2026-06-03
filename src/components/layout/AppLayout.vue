@@ -266,8 +266,15 @@ const isActive = (path) => route.path === path
       </header>
 
       <!-- Page Content -->
-      <main :class="hideSidebar ? 'flex-1 overflow-hidden' : 'flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8'">
-        <router-view />
+      <main :class="hideSidebar ? 'flex-1 overflow-hidden' : 'flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 flex flex-col'">
+        <div :class="hideSidebar ? 'h-full' : 'flex-1'">
+          <router-view />
+        </div>
+
+        <!-- Footer Watermark -->
+        <footer v-if="!hideSidebar" class="mt-auto pt-8 text-center text-[11px] font-semibold tracking-wider text-venus-400 uppercase">
+          &copy; {{ new Date().getFullYear() }} CBT Al Hikmah Tahfidz School - Sistem Ujian Berbasis Komputer
+        </footer>
       </main>
     </div>
 
