@@ -17,6 +17,12 @@ const router = createRouter({
       component: () => import('@/views/auth/ResetPasswordView.vue'),
     },
     {
+      path: '/review',
+      name: 'review',
+      component: () => import('@/views/ReviewView.vue'),
+      // public: tidak perlu login, tidak ada meta requiresAuth
+    },
+    {
       path: '/',
       redirect: '/login'
     },
@@ -35,6 +41,7 @@ const router = createRouter({
         { path: 'jadwal', name: 'admin-jadwal', component: () => import('@/views/admin/JadwalUjian.vue') },
         { path: 'aktivitas', name: 'admin-aktivitas', component: () => import('@/views/admin/AktivitasPengguna.vue') },
         { path: 'trash', name: 'admin-trash', component: () => import('@/views/admin/TrashSoal.vue') },
+        { path: 'feedback', name: 'admin-feedback', component: () => import('@/views/admin/FeedbackView.vue') },
         { path: 'settings', name: 'admin-settings', component: () => import('@/views/admin/SettingsView.vue') },
         { path: 'errors', name: 'admin-errors', component: () => import('@/views/admin/ErrorMonitor.vue') },
       ]
