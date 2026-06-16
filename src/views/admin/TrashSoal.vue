@@ -4,6 +4,7 @@ import { supabase } from '@/services/supabase'
 import { Trash2, RotateCcw, AlertTriangle, AlertCircle, FileStack } from 'lucide-vue-next'
 import { GlassCard } from '@/components/ui'
 import Swal from 'sweetalert2'
+import { toast } from 'gooey-toast'
 
 const trashItems = ref([])
 const loading = ref(true)
@@ -55,9 +56,9 @@ const restoreItem = async (id, judul) => {
     .eq('id', id)
 
   if (error) {
-    Swal.fire('Gagal', error.message, 'error')
+    toast.error({ title: 'Gagal', description: error.message })
   } else {
-    Swal.fire({ icon: 'success', title: 'Berhasil dipulihkan', timer: 1500, showConfirmButton: false })
+    toast.success({ title: 'Berhasil dipulihkan' })
     fetchTrash()
   }
 }
@@ -81,9 +82,9 @@ const hardDelete = async (id, judul) => {
     .eq('id', id)
 
   if (error) {
-    Swal.fire('Gagal', error.message, 'error')
+    toast.error({ title: 'Gagal', description: error.message })
   } else {
-    Swal.fire({ icon: 'success', title: 'Berhasil dihapus permanen', timer: 1500, showConfirmButton: false })
+    toast.success({ title: 'Berhasil dihapus permanen' })
     fetchTrash()
   }
 }
@@ -108,9 +109,9 @@ const restoreAll = async () => {
     .not('deleted_at', 'is', null)
 
   if (error) {
-    Swal.fire('Gagal', error.message, 'error')
+    toast.error({ title: 'Gagal', description: error.message })
   } else {
-    Swal.fire({ icon: 'success', title: 'Semua soal dipulihkan', timer: 1500, showConfirmButton: false })
+    toast.success({ title: 'Semua soal dipulihkan' })
     fetchTrash()
   }
 }

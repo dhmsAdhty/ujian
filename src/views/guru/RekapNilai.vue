@@ -13,6 +13,7 @@ import KoreksiPanel from '@/components/guru/KoreksiPanel.vue'
 import PreviewExamModal from '@/components/guru/PreviewExamModal.vue'
 import * as XLSX from 'xlsx'
 import Swal from 'sweetalert2'
+import { toast } from 'gooey-toast'
 
 use([PieChart, TooltipComponent, LegendComponent, CanvasRenderer])
 
@@ -194,7 +195,7 @@ const fetchData = async () => {
   const { data: resultData, error } = await query
 
   if (error) {
-    Swal.fire('Error', 'Gagal memuat rekap nilai', 'error')
+    toast.error({ title: 'Error', description: 'Gagal memuat rekap nilai' })
   } else {
     const mapped = (resultData || []).map(r => {
       const essayScoreObj = r.essay_score && typeof r.essay_score === 'object' ? r.essay_score : null
@@ -315,10 +316,10 @@ const resetSatu = async (res) => {
     const { error: updErr } = await supabase.from('exam_results')
       .update({ answers: {}, pg_score: null, essay_score: null, submitted_at: null, violations: 0 })
       .eq('id', res.id)
-    if (updErr) return Swal.fire('Gagal', updErr.message, 'error')
+    if (updErr) return toast.error({ title: 'Gagal', description: updErr.message })
   }
 
-  Swal.fire({ icon: 'success', title: 'Jawaban direset', timer: 1200, showConfirmButton: false })
+  toast.success({ title: 'Jawaban direset' })
   fetchData()
 }
 
@@ -344,10 +345,10 @@ const resetSemua = async () => {
     const { error: updErr } = await supabase.from('exam_results')
       .update({ answers: {}, pg_score: null, essay_score: null, submitted_at: null, violations: 0 })
       .in('id', ids)
-    if (updErr) return Swal.fire('Gagal', updErr.message, 'error')
+    if (updErr) return toast.error({ title: 'Gagal', description: updErr.message })
   }
 
-  Swal.fire({ icon: 'success', title: 'Semua jawaban direset', timer: 1500, showConfirmButton: false })
+  toast.success({ title: 'Semua jawaban direset' })
   fetchData()
 }
 

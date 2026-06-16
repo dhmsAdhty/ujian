@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import { supabase } from '@/services/supabase'
 import { useAuthStore } from '@/stores/auth'
 import Swal from 'sweetalert2'
+import { toast } from 'gooey-toast'
 
 export function useBankSoal() {
   const authStore = useAuthStore()
@@ -42,7 +43,7 @@ export function useBankSoal() {
     const { data, count, error } = await query
 
     if (error) {
-      Swal.fire('Error', error.message, 'error')
+      toast.error({ title: 'Error', description: error.message })
     } else {
       items.value = data
       totalItems.value = count || 0
@@ -70,10 +71,10 @@ export function useBankSoal() {
         .eq('guru_id', authStore.user.id) // Security: Isolation check
 
       if (error) {
-        Swal.fire('Gagal', error.message, 'error')
+        toast.error({ title: 'Gagal', description: error.message })
         return false
       } else {
-        Swal.fire('Terhapus!', 'Soal berhasil dihapus.', 'success')
+        toast.success({ title: 'Terhapus!', description: 'Soal berhasil dihapus.' })
         return true
       }
     }
@@ -100,10 +101,10 @@ export function useBankSoal() {
         .eq('guru_id', authStore.user.id)
 
       if (error) {
-        Swal.fire('Gagal', error.message, 'error')
+        toast.error({ title: 'Gagal', description: error.message })
         return false
       } else {
-        Swal.fire('Terhapus!', `${ids.length} soal berhasil dihapus.`, 'success')
+        toast.success({ title: 'Terhapus!', description: `${ids.length} soal berhasil dihapus.` })
         return true
       }
     }

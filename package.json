@@ -25,6 +25,7 @@
     "@vueuse/motion": "^3.0.3",
     "date-fns": "^4.1.0",
     "echarts": "^6.0.0",
+    "gooey-toast": "^0.2.2",
     "lucide-vue-next": "^1.0.0",
     "pinia": "^3.0.4",
     "sweetalert2": "^11.26.24",

@@ -4,6 +4,7 @@ import { supabase } from '@/services/supabase'
 import { MessageSquarePlus, User, Send, CheckCircle2, LogIn, ShieldCheck } from 'lucide-vue-next'
 import { AppSelect } from '@/components/ui'
 import Swal from 'sweetalert2'
+import { toast } from 'gooey-toast'
 
 const nama     = ref('')
 const kategori = ref('')
@@ -76,12 +77,7 @@ const handleSubmit = async () => {
   if (!nama.value.trim() || !kategori.value || !pesan.value.trim()) return
 
   if (!turnstileToken.value) {
-    Swal.fire({
-      icon: 'warning',
-      title: 'Verifikasi diperlukan',
-      text: 'Selesaikan tantangan keamanan Cloudflare terlebih dahulu.',
-      confirmButtonColor: '#4318ff',
-    })
+    toast.warning({ title: 'Verifikasi diperlukan', description: 'Selesaikan tantangan keamanan Cloudflare terlebih dahulu.' })
     return
   }
 
@@ -101,12 +97,7 @@ const handleSubmit = async () => {
     }
     turnstileToken.value = ''
 
-    Swal.fire({
-      icon: 'error',
-      title: 'Gagal mengirim',
-      text: error.message,
-      confirmButtonColor: '#4318ff'
-    })
+    toast.error({ title: 'Gagal mengirim', description: error.message })
   } else {
     submitted.value = true
   }

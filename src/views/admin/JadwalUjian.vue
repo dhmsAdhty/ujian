@@ -5,6 +5,7 @@ import { Clock, Trash2, Eye, CalendarDays, Search, User, Filter } from 'lucide-v
 import { GlassCard, AppSelect, EmptyState } from '@/components/ui'
 import PreviewExamModal from '@/components/guru/PreviewExamModal.vue'
 import Swal from 'sweetalert2'
+import { toast } from 'gooey-toast'
 
 const loading = ref(true)
 const ujianList = ref([])
@@ -51,7 +52,7 @@ const fetchData = async () => {
     .order('tanggal_mulai', { ascending: false })
 
   if (error) {
-    Swal.fire('Error', error.message, 'error')
+    toast.error({ title: 'Error', description: error.message })
   } else {
     ujianList.value = data || []
   }
@@ -105,9 +106,9 @@ const handleDelete = async (ujian) => {
   if (result.isConfirmed) {
     const { error } = await supabase.from('ujian').delete().eq('id', ujian.id)
     if (error) {
-      Swal.fire('Gagal', error.message, 'error')
+      toast.error({ title: 'Gagal', description: error.message })
     } else {
-      Swal.fire({ icon: 'success', title: 'Berhasil dihapus', timer: 1500, showConfirmButton: false })
+      toast.success({ title: 'Berhasil dihapus' })
       fetchData()
     }
   }

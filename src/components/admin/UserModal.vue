@@ -4,6 +4,7 @@ import { supabase } from '@/services/supabase'
 import { X, User, KeyRound } from 'lucide-vue-next'
 import { FormInput, AppSelect, PrimaryButton } from '@/components/ui'
 import Swal from 'sweetalert2'
+import { toast } from 'gooey-toast'
 
 const props = defineProps({
   show: Boolean,
@@ -75,14 +76,9 @@ const handleResetPassword = async () => {
   resettingPassword.value = false
 
   if (error) {
-    Swal.fire('Gagal', error.message, 'error')
+    toast.error({ title: 'Gagal', description: error.message })
   } else {
-    Swal.fire({
-      icon: 'success',
-      title: 'Email Terkirim',
-      text: `Link reset password telah dikirim ke ${props.editUser.email}`,
-      confirmButtonColor: '#4318ff',
-    })
+    toast.success({ title: 'Email Terkirim', description: `Link reset password telah dikirim ke ${props.editUser.email}` })
   }
 }
 const handleSave = async () => {
@@ -150,7 +146,7 @@ const handleSave = async () => {
         confirmButtonColor: '#4318ff',
       })
     } else {
-      Swal.fire('Gagal', msg, 'error')
+      toast.error({ title: 'Gagal', description: msg })
     }
   } finally {
     saving.value = false

@@ -10,6 +10,7 @@ import {
 import { GlassCard, PrimaryButton, FormInput, AppSelect, EmptyState } from '@/components/ui'
 import PreviewExamModal from '@/components/guru/PreviewExamModal.vue'
 import Swal from 'sweetalert2'
+import { toast } from 'gooey-toast'
 
 const authStore = useAuthStore()
 const loading = ref(true)
@@ -184,15 +185,15 @@ const tipeBadge = (tipe) => {
 
 const goToStep2 = async () => {
   if (!form.value.nama || !form.value.mapel_id || !form.value.kelas_id || !form.value.tanggal_mulai) {
-    return Swal.fire('Peringatan', 'Mohon lengkapi semua field wajib', 'warning')
+    return toast.warning({ title: 'Peringatan', description: 'Mohon lengkapi semua field wajib' })
   }
   // Fix #5: tanggal_selesai wajib diisi agar ujian punya batas waktu
   if (!form.value.tanggal_selesai) {
-    return Swal.fire('Peringatan', 'Tanggal selesai wajib diisi agar ujian memiliki batas waktu', 'warning')
+    return toast.warning({ title: 'Peringatan', description: 'Tanggal selesai wajib diisi agar ujian memiliki batas waktu' })
   }
   // Fix #4: tanggal_selesai harus setelah tanggal_mulai
   if (form.value.tanggal_selesai <= form.value.tanggal_mulai) {
-    return Swal.fire('Peringatan', 'Tanggal selesai harus setelah tanggal mulai', 'warning')
+    return toast.warning({ title: 'Peringatan', description: 'Tanggal selesai harus setelah tanggal mulai' })
   }
   await fetchBankSoal()
   formStep.value = 2
@@ -281,7 +282,7 @@ onMounted(fetchData)
 
 const handleSave = async () => {
   if (selectedSoalIds.value.length === 0) {
-    return Swal.fire('Peringatan', 'Pilih minimal 1 soal untuk ujian ini', 'warning')
+    return toast.warning({ title: 'Peringatan', description: 'Pilih minimal 1 soal untuk ujian ini' })
   }
   saving.value = true
   const payload = {
@@ -294,10 +295,10 @@ const handleSave = async () => {
   let ujianId = editingId.value
   if (editingId.value) {
     const { error } = await supabase.from('ujian').update(payload).eq('id', editingId.value)
-    if (error) { Swal.fire('Gagal', error.message, 'error'); saving.value = false; return }
+    if (error) { toast.error({ title: 'Gagal', description: error.message }); saving.value = false; return }
   } else {
     const { data, error } = await supabase.from('ujian').insert([payload]).select('id').single()
-    if (error) { Swal.fire('Gagal', error.message, 'error'); saving.value = false; return }
+    if (error) { toast.error({ title: 'Gagal', description: error.message }); saving.value = false; return }
     ujianId = data.id
   }
 
@@ -309,9 +310,9 @@ const handleSave = async () => {
     : bankSoalList.value.filter(s => selectedSoalIds.value.includes(s.id)).map(s => s.id)
   const rows = orderedIds.map((soal_id, idx) => ({ ujian_id: ujianId, soal_id, urutan: idx + 1 }))
   const { error: soalError } = await supabase.from('ujian_soal').insert(rows)
-  if (soalError) { Swal.fire('Gagal menyimpan soal', soalError.message, 'error'); saving.value = false; return }
+  if (soalError) { toast.error({ title: 'Gagal menyimpan soal', description: soalError.message }); saving.value = false; return }
 
-  Swal.fire({ icon: 'success', title: 'Berhasil!', timer: 1200, showConfirmButton: false })
+  toast.success({ title: 'Berhasil!' })
   showForm.value = false
   resetForm()
   fetchData()
@@ -330,7 +331,7 @@ const handleDelete = async (ujian) => {
   })
   if (!result.isConfirmed) return
   const { error } = await supabase.from('ujian').delete().eq('id', ujian.id)
-  if (error) Swal.fire('Gagal', error.message, 'error')
+  if (error) toast.error({ title: 'Gagal', description: error.message })
   else fetchData()
 }
 
@@ -784,48 +785,58 @@ const getEffectiveStatus = (ujian) => {
 
         <!-- ===================== DESKTOP TABLE (md+) ===================== -->
         <div class="hidden md:block overflow-x-auto">
-          <table class="w-full text-left text-sm">
+          <table class="w-full text-left text-sm table-fixed">
+            <colgroup>
+              <col style="width: 26%" />
+              <col style="width: 11%" />
+              <col style="width: 9%" />
+              <col style="width: 7%" />
+              <col style="width: 10%" />
+              <col style="width: 16%" />
+              <col style="width: 10%" />
+              <col style="width: 11%" />
+            </colgroup>
             <thead>
               <tr class="border-b border-venus-100 bg-venus-50/60">
-                <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Nama Ujian</th>
-                <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Mapel</th>
-                <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Kelas</th>
-                <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Soal</th>
-                <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Durasi</th>
-                <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Mulai</th>
-                <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider text-venus-400">Status</th>
-                <th class="px-6 py-3.5 text-right text-xs font-bold uppercase tracking-wider text-venus-400">Aksi</th>
+                <th class="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-venus-400">Nama Ujian</th>
+                <th class="px-3 py-3 text-[11px] font-bold uppercase tracking-wider text-venus-400">Mapel</th>
+                <th class="px-3 py-3 text-[11px] font-bold uppercase tracking-wider text-venus-400">Kelas</th>
+                <th class="px-3 py-3 text-[11px] font-bold uppercase tracking-wider text-venus-400 text-center">Soal</th>
+                <th class="px-3 py-3 text-[11px] font-bold uppercase tracking-wider text-venus-400">Durasi</th>
+                <th class="px-3 py-3 text-[11px] font-bold uppercase tracking-wider text-venus-400">Mulai</th>
+                <th class="px-3 py-3 text-[11px] font-bold uppercase tracking-wider text-venus-400 text-center">Status</th>
+                <th class="px-3 py-3 text-right text-[11px] font-bold uppercase tracking-wider text-venus-400">Aksi</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-venus-50">
               <tr v-for="(ujian, index) in ujianList" :key="ujian.id" class="transition-colors hover:bg-venus-50/50">
-                <td class="max-w-[200px] px-6 py-4">
-                  <p class="truncate font-medium text-venus-800">{{ ujian.nama }}</p>
+                <td class="px-4 py-3.5">
+                  <p class="truncate font-medium text-venus-800" :title="ujian.nama">{{ ujian.nama }}</p>
                 </td>
-                <td class="px-6 py-4 text-venus-600">{{ ujian.mapel?.nama || '—' }}</td>
-                <td class="px-6 py-4 text-venus-600">{{ ujian.kelas?.nama || '—' }}</td>
-                <td class="px-6 py-4">
-                  <span class="inline-flex items-center gap-1 rounded-lg bg-venus-100 px-2 py-0.5 text-xs font-bold text-venus-600">
+                <td class="px-3 py-3.5 text-venus-600 truncate">{{ ujian.mapel?.nama || '—' }}</td>
+                <td class="px-3 py-3.5 text-venus-600 whitespace-nowrap">{{ ujian.kelas?.nama || '—' }}</td>
+                <td class="px-3 py-3.5 text-center">
+                  <span class="inline-flex items-center justify-center min-w-[28px] rounded-lg bg-venus-100 px-2 py-0.5 text-xs font-bold text-venus-600">
                     {{ ujian.jumlah_soal ?? '—' }}
                   </span>
                 </td>
-                <td class="px-6 py-4">
-                  <div class="flex items-center gap-1 text-venus-600">
-                    <Clock :size="13" />
-                    {{ ujian.durasi }} menit
+                <td class="px-3 py-3.5 whitespace-nowrap">
+                  <div class="flex items-center gap-1.5 text-venus-600">
+                    <Clock :size="13" class="shrink-0" />
+                    <span>{{ ujian.durasi }} mnt</span>
                   </div>
                 </td>
-                <td class="px-6 py-4 text-venus-500 text-xs">{{ formatDate(ujian.tanggal_mulai) }}</td>
-                <td class="px-6 py-4">
+                <td class="px-3 py-3.5 text-venus-500 text-xs whitespace-nowrap">{{ formatDate(ujian.tanggal_mulai) }}</td>
+                <td class="px-3 py-3.5 text-center">
                   <span
-                    class="inline-flex rounded-lg px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide"
+                    class="inline-flex rounded-lg px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide whitespace-nowrap"
                     :class="getEffectiveStatus(ujian).badge"
                   >
                     {{ getEffectiveStatus(ujian).label }}
                   </span>
                 </td>
-                <td class="px-6 py-4">
-                  <div class="flex items-center justify-end gap-2">
+                <td class="px-3 py-3.5">
+                  <div class="flex items-center justify-end gap-1.5">
                     <button
                       type="button"
                       :id="index === 0 ? 'tour-btn-preview-jadwal' : ''"

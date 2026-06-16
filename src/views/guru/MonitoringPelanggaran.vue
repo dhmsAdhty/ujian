@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { Search, ShieldAlert, RotateCcw, User, BookOpen, CheckCircle2, AlertCircle } from 'lucide-vue-next'
 import { GlassCard, PrimaryButton, EmptyState, AppSelect } from '@/components/ui'
 import Swal from 'sweetalert2'
+import { toast } from 'gooey-toast'
 
 const authStore = useAuthStore()
 const loading = ref(true)
@@ -110,10 +111,10 @@ const resetViolation = async (res) => {
     const { error: updErr } = await supabase.from('exam_results')
       .update({ answers: {}, pg_score: null, essay_score: null, submitted_at: null, violations: 0 })
       .eq('id', res.id)
-    if (updErr) return Swal.fire('Gagal', updErr.message, 'error')
+    if (updErr) return toast.error({ title: 'Gagal', description: updErr.message })
   }
 
-  Swal.fire({ icon: 'success', title: 'Jawaban direset', timer: 1200, showConfirmButton: false })
+  toast.success({ title: 'Jawaban direset' })
   fetchResults()
 }
 

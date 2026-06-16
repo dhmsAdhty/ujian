@@ -3,6 +3,7 @@ import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import Swal from 'sweetalert2'
+import { toast } from 'gooey-toast'
 import { LogIn, Mail, Lock, ShieldCheck } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
@@ -73,12 +74,7 @@ const handleLogin = async () => {
 
   // Blokir submit jika CAPTCHA belum selesai
   if (!turnstileToken.value) {
-    Swal.fire({
-      icon: 'warning',
-      title: 'Verifikasi diperlukan',
-      text: 'Selesaikan tantangan keamanan Cloudflare terlebih dahulu.',
-      confirmButtonColor: '#4318ff',
-    })
+    toast.warning({ title: 'Verifikasi diperlukan', description: 'Selesaikan tantangan keamanan Cloudflare terlebih dahulu.' })
     return
   }
 
@@ -92,20 +88,10 @@ const handleLogin = async () => {
     }
     turnstileToken.value = ''
 
-    Swal.fire({
-      icon: 'error',
-      title: 'Login gagal',
-      text: error.message,
-      confirmButtonColor: '#4318ff'
-    })
+    toast.error({ title: 'Login gagal', description: error.message })
   } else {
-    await Swal.fire({
-      icon: 'success',
-      title: 'Selamat datang',
-      text: 'Anda berhasil masuk.',
-      timer: 1200,
-      showConfirmButton: false
-    })
+    toast.success({ title: 'Selamat datang', description: 'Anda berhasil masuk.' })
+    await new Promise(resolve => setTimeout(resolve, 800))
 
     const role = authStore.role
     if (role === 'admin') router.push('/admin')

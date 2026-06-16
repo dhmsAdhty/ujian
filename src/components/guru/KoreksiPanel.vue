@@ -3,6 +3,7 @@ import { ref, watch, computed } from 'vue'
 import { supabase } from '@/services/supabase'
 import { ChevronRight, CheckCircle2, XCircle, Minus, Save, RotateCcw } from 'lucide-vue-next'
 import Swal from 'sweetalert2'
+import { toast } from 'gooey-toast'
 
 const props = defineProps({
   result: { type: Object, default: null }
@@ -181,10 +182,10 @@ const resetJawaban = async () => {
       .from('exam_results')
       .update({ answers: {}, pg_score: null, essay_score: null, submitted_at: null, violations: 0 })
       .eq('id', props.result.id)
-    if (updateError) { Swal.fire('Gagal', updateError.message, 'error'); return }
+    if (updateError) { toast.error({ title: 'Gagal', description: updateError.message }); return }
   }
 
-  Swal.fire({ icon: 'success', title: 'Jawaban direset', timer: 1500, showConfirmButton: false })
+  toast.success({ title: 'Jawaban direset' })
   emit('saved')
 }
 
@@ -211,7 +212,7 @@ const save = async () => {
   saving.value = false
 
   if (error) {
-    Swal.fire('Gagal', error.message, 'error')
+    toast.error({ title: 'Gagal', description: error.message })
   } else {
     Swal.fire({
       icon: 'success',

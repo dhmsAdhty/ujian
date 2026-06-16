@@ -4,6 +4,7 @@ import { supabase } from '@/services/supabase'
 import { GraduationCap, BookOpen, Plus, Search, X, UserCheck, Layers } from 'lucide-vue-next'
 import { GlassCard, PrimaryButton, EmptyState, AppSelect } from '@/components/ui'
 import Swal from 'sweetalert2'
+import { toast } from 'gooey-toast'
 
 const gurus = ref([])
 const mapels = ref([])
@@ -71,9 +72,12 @@ const handleAssign = async () => {
   })
   saving.value = false
   if (error) {
-    Swal.fire('Gagal', error.message.includes('does not exist')
-      ? 'Tabel guru_mapel belum dibuat. Jalankan SQL di Supabase terlebih dahulu.'
-      : error.message, 'error')
+    toast.error({
+      title: 'Gagal',
+      description: error.message.includes('does not exist')
+        ? 'Tabel guru_mapel belum dibuat. Jalankan SQL di Supabase terlebih dahulu.'
+        : error.message
+    })
   } else {
     selectedMapelId.value = ''
     await fetchAll()
@@ -92,7 +96,7 @@ const handleRemove = async (guruId, mapelId, mapelNama) => {
   })
   if (!result.isConfirmed) return
   const { error } = await supabase.from('guru_mapel').delete().eq('guru_id', guruId).eq('mapel_id', mapelId)
-  if (error) Swal.fire('Gagal', error.message, 'error')
+  if (error) toast.error({ title: 'Gagal', description: error.message })
   else fetchAll()
 }
 

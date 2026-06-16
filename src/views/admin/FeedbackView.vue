@@ -4,6 +4,7 @@ import { supabase } from '@/services/supabase'
 import { GlassCard, EmptyState } from '@/components/ui'
 import { MessageSquarePlus, Search, RefreshCw, X, Lightbulb, Flame, Bug, MessageCircle, Trash2 } from 'lucide-vue-next'
 import Swal from 'sweetalert2'
+import { toast } from 'gooey-toast'
 
 const loading    = ref(true)
 const feedbacks  = ref([])
@@ -84,7 +85,7 @@ const deleteFeedback = async (id) => {
   loading.value = true
   const { error } = await supabase.from('feedback').delete().eq('id', id)
   if (error) {
-    Swal.fire('Gagal', error.message, 'error')
+    toast.error({ title: 'Gagal', description: error.message })
     loading.value = false
     return
   }
@@ -92,7 +93,7 @@ const deleteFeedback = async (id) => {
   feedbacks.value = feedbacks.value.filter(f => f.id !== id)
   selected.value = null
   loading.value = false
-  Swal.fire({ icon: 'success', title: 'Berhasil Dihapus', timer: 1200, showConfirmButton: false })
+  toast.success({ title: 'Berhasil Dihapus' })
 }
 </script>
 

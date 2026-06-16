@@ -17,6 +17,7 @@ import {
 import { GlassCard, PrimaryButton, FormInput, AppSelect, RichTextEditor } from '@/components/ui'
 import { uploadToCloudinary } from '@/services/cloudinary'
 import Swal from 'sweetalert2'
+import { toast } from 'gooey-toast'
 
 const router = useRouter()
 const route = useRoute()
@@ -86,7 +87,7 @@ const fetchData = async () => {
       .single()
 
     if (error) {
-      Swal.fire('Error', 'Gagal memuat data soal', 'error')
+      toast.error({ title: 'Error', description: 'Gagal memuat data soal' })
       router.push('/guru/soal')
     } else {
       const opts = (data.options || form.value.options).map((o, idx) => ({
@@ -155,7 +156,7 @@ const handleOptionImageUpload = async (event, index) => {
 
 const uploadImage = async (file) => {
   const url = await uploadToCloudinary(file, 'ujian_sma')
-  if (!url) Swal.fire('Upload Gagal', 'Gagal mengunggah gambar ke Cloudinary', 'error')
+  if (!url) toast.error({ title: 'Upload Gagal', description: 'Gagal mengunggah gambar ke Cloudinary' })
   return url
 }
 
@@ -214,7 +215,7 @@ const resetForm = () => {
 const handleSave = async (addAnother = false) => {
   const plainText = stripHtml(form.value.konten || '').trim()
   if (!plainText || !form.value.mapel_id || !form.value.kelas_id) {
-    return Swal.fire('Peringatan', 'Mohon lengkapi pertanyaan, mata pelajaran, dan kelas', 'warning')
+    return toast.warning({ title: 'Peringatan', description: 'Mohon lengkapi pertanyaan, mata pelajaran, dan kelas' })
   }
 
   if (addAnother) savingAndAdd.value = true
@@ -238,15 +239,9 @@ const handleSave = async (addAnother = false) => {
     : await supabase.from('bank_soal').insert([payload])
 
   if (error) {
-    Swal.fire('Gagal Menyimpan', error.message, 'error')
+    toast.error({ title: 'Gagal Menyimpan', description: error.message })
   } else {
-    Swal.fire({
-      icon: 'success',
-      title: 'Berhasil!',
-      text: `Soal berhasil ${isEdit.value ? 'diperbarui' : 'ditambahkan'}.`,
-      timer: 1500,
-      showConfirmButton: false
-    })
+    toast.success({ title: 'Berhasil!', description: `Soal berhasil ${isEdit.value ? 'diperbarui' : 'ditambahkan'}.` })
 
     if (addAnother && !isEdit.value) {
       resetForm()

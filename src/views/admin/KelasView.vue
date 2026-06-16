@@ -4,6 +4,7 @@ import { supabase } from '@/services/supabase'
 import { School, Plus, Pencil, Trash2, X, Save, Users } from 'lucide-vue-next'
 import { GlassCard, PrimaryButton, FormInput, EmptyState } from '@/components/ui'
 import Swal from 'sweetalert2'
+import { toast } from 'gooey-toast'
 
 const kelas = ref([])
 const loading = ref(true)
@@ -21,7 +22,7 @@ const fetchKelas = async () => {
   let query = supabase.from('kelas').select('id, nama, created_at').order('nama')
   if (searchQuery.value) query = query.ilike('nama', `%${searchQuery.value}%`)
   const { data, error } = await query
-  if (error) Swal.fire('Error', error.message, 'error')
+  if (error) toast.error({ title: 'Error', description: error.message })
   else {
     kelas.value = data || []
     // Fetch jumlah siswa per kelas
@@ -77,9 +78,9 @@ const handleSave = async () => {
     }
     showModal.value = false
     fetchKelas()
-    Swal.fire({ icon: 'success', title: editingKelas.value ? 'Diperbarui' : 'Ditambahkan', timer: 1200, showConfirmButton: false })
+    toast.success({ title: editingKelas.value ? 'Diperbarui' : 'Ditambahkan' })
   } catch (err) {
-    Swal.fire('Gagal', err.message, 'error')
+    toast.error({ title: 'Gagal', description: err.message })
   } finally {
     saving.value = false
   }
@@ -100,9 +101,9 @@ const handleDelete = async (k) => {
   })
   if (!result.isConfirmed) return
   const { error } = await supabase.from('kelas').delete().eq('id', k.id)
-  if (error) Swal.fire('Gagal', error.message, 'error')
+  if (error) toast.error({ title: 'Gagal', description: error.message })
   else {
-    Swal.fire({ icon: 'success', title: 'Dihapus', timer: 1200, showConfirmButton: false })
+    toast.success({ title: 'Dihapus' })
     fetchKelas()
   }
 }

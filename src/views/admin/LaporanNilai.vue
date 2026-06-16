@@ -10,6 +10,7 @@ import { Search, FileSpreadsheet, CheckCircle2, Clock, TrendingUp, Users, Award,
 import { GlassCard, EmptyState, AppSelect } from '@/components/ui'
 import * as XLSX from 'xlsx'
 import Swal from 'sweetalert2'
+import { toast } from 'gooey-toast'
 
 use([PieChart, TitleComponent, TooltipComponent, LegendComponent, CanvasRenderer])
 
@@ -126,7 +127,7 @@ const fetchData = async () => {
   kelasList.value = kelasRes.data || []
 
   if (resultRes.error) {
-    Swal.fire('Error', 'Gagal memuat laporan nilai', 'error')
+    toast.error({ title: 'Error', description: 'Gagal memuat laporan nilai' })
   } else {
     const mapped = (resultRes.data || []).map(r => {
       const essayScoreObj = r.essay_score && typeof r.essay_score === 'object' ? r.essay_score : null

@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { supabase } from '@/services/supabase'
 import { Settings, ShieldAlert, Save, ChevronDown, Calculator, ScanSearch, RefreshCw, AlertTriangle, CheckCircle2 } from 'lucide-vue-next'
 import Swal from 'sweetalert2'
+import { toast } from 'gooey-toast'
 
 const loading = ref(true)
 const saving = ref(false)
@@ -126,11 +127,11 @@ const saveSection = async (section) => {
   saving.value = false
 
   if (error) {
-    Swal.fire('Gagal Menyimpan', `${error.message}\n\nCode: ${error.code}`, 'error')
+    toast.error({ title: 'Gagal Menyimpan', description: `${error.message}\n\nCode: ${error.code}` })
   } else if (!data || data.length === 0) {
-    Swal.fire('Gagal', 'Data tidak tersimpan. Kemungkinan RLS policy memblokir.', 'warning')
+    toast.warning({ title: 'Gagal', description: 'Data tidak tersimpan. Kemungkinan RLS policy memblokir.' })
   } else {
-    Swal.fire({ icon: 'success', title: 'Disimpan', timer: 1000, showConfirmButton: false })
+    toast.success({ title: 'Disimpan' })
   }
 }
 
@@ -180,7 +181,7 @@ const runAudit = async () => {
     .not('pg_correct', 'is', null)
 
   if (error) {
-    Swal.fire('Error', 'Gagal memuat data: ' + error.message, 'error')
+    toast.error({ title: 'Error', description: 'Gagal memuat data: ' + error.message })
     auditLoading.value = false
     return
   }
@@ -237,7 +238,7 @@ const toggleSelectAll = (val) => auditResults.value.forEach(r => (r.selected = v
 
 const applyRecalculate = async () => {
   const toUpdate = auditResults.value.filter(r => r.selected)
-  if (!toUpdate.length) return Swal.fire('Info', 'Tidak ada data yang dipilih.', 'info')
+  if (!toUpdate.length) return toast.info({ title: 'Info', description: 'Tidak ada data yang dipilih.' })
 
   const { isConfirmed } = await Swal.fire({
     title: 'Terapkan Hitung Ulang?',
@@ -259,9 +260,9 @@ const applyRecalculate = async () => {
   auditLoading.value = false
 
   if (fail === 0) {
-    await Swal.fire({ icon: 'success', title: `${ok} nilai berhasil diperbarui!`, timer: 2000, showConfirmButton: false })
+    toast.success({ title: `${ok} nilai berhasil diperbarui!` })
   } else {
-    await Swal.fire('Selesai', `${ok} berhasil, ${fail} gagal.`, 'warning')
+    toast.warning({ title: 'Selesai', description: `${ok} berhasil, ${fail} gagal.` })
   }
   runAudit()
 }

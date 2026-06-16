@@ -4,6 +4,7 @@ import { supabase } from '@/services/supabase'
 import { useAuthStore } from '@/stores/auth'
 import { useExamCache } from '@/composables/useExamCache'
 import Swal from 'sweetalert2'
+import { toast } from 'gooey-toast'
 
 export function useExamEngine(examId, { onViolationSubmit, onTimerEnd } = {}) {
   const authStore = useAuthStore()
@@ -45,7 +46,7 @@ export function useExamEngine(examId, { onViolationSubmit, onTimerEnd } = {}) {
       .single()
 
     if (ujianError) {
-      Swal.fire('Gagal', 'Gagal memuat data ujian', 'error')
+      toast.error({ title: 'Gagal', description: 'Gagal memuat data ujian' })
       loading.value = false
       return
     }
@@ -100,7 +101,7 @@ export function useExamEngine(examId, { onViolationSubmit, onTimerEnd } = {}) {
     const { data: soalListUnsorted, error: soalError } = await fetchExamSoal(examId)
 
     if (soalError || !soalListUnsorted) {
-      Swal.fire('Gagal', 'Gagal memuat soal ujian', 'error')
+      toast.error({ title: 'Gagal', description: 'Gagal memuat soal ujian' })
     } else {
       let soalList = [...soalListUnsorted]
 

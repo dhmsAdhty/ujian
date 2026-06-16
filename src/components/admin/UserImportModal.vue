@@ -5,6 +5,7 @@ import { supabase } from '@/services/supabase'
 import { X, Upload, FileSpreadsheet, Download, Info, CheckCircle2, AlertCircle } from 'lucide-vue-next'
 import { PrimaryButton } from '@/components/ui'
 import Swal from 'sweetalert2'
+import { toast } from 'gooey-toast'
 
 const emit = defineEmits(['close', 'imported'])
 defineProps({ show: Boolean })
@@ -62,7 +63,7 @@ const processImport = async () => {
   const adminSession = sessionData?.session
 
   if (!adminSession) {
-    Swal.fire('Sesi Tidak Valid', 'Silakan login ulang sebagai admin sebelum mengimpor user.', 'error')
+    toast.error({ title: 'Sesi Tidak Valid', description: 'Silakan login ulang sebagai admin sebelum mengimpor user.' })
     loading.value = false
     return
   }
@@ -141,7 +142,7 @@ const processImport = async () => {
   results.value = { success, failed, failedRows }
 
   if (failed === 0) {
-    Swal.fire({ icon: 'success', title: 'Import Selesai', text: `${success} user berhasil ditambahkan.`, timer: 2000, showConfirmButton: false })
+    toast.success({ title: 'Import Selesai', description: `${success} user berhasil ditambahkan.` })
     emit('imported')
   }
 }

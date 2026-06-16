@@ -6,6 +6,7 @@ import {
   ChevronLeft, ChevronRight, CheckCircle2
 } from 'lucide-vue-next'
 import Swal from 'sweetalert2'
+import { toast } from 'gooey-toast'
 
 const props = defineProps({
   isOpen: { type: Boolean, default: false },
@@ -89,7 +90,7 @@ watch(() => props.isOpen, async (open) => {
     examInfo.value.totalSoal = questions.value.length
     startTimer()
   } catch (err) {
-    Swal.fire('Gagal Memuat', 'Tidak dapat mengambil pratinjau soal ujian.', 'error')
+    toast.error({ title: 'Gagal Memuat', description: 'Tidak dapat mengambil pratinjau soal ujian.' })
     emit('close')
   } finally {
     loading.value = false

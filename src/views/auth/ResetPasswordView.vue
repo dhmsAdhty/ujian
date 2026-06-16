@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { supabase } from '@/services/supabase'
 import { KeyRound, Eye, EyeOff, CheckCircle2 } from 'lucide-vue-next'
 import Swal from 'sweetalert2'
+import { toast } from 'gooey-toast'
 
 const router = useRouter()
 const password = ref('')
@@ -50,16 +51,10 @@ const handleReset = async () => {
   loading.value = false
 
   if (error) {
-    Swal.fire('Gagal', error.message, 'error')
+    toast.error({ title: 'Gagal', description: error.message })
   } else {
-    await Swal.fire({
-      icon: 'success',
-      title: 'Password Berhasil Diubah',
-      text: 'Silakan login dengan password baru Anda.',
-      confirmButtonColor: '#4318ff',
-      timer: 2000,
-      showConfirmButton: false,
-    })
+    toast.success({ title: 'Password Berhasil Diubah', description: 'Silakan login dengan password baru Anda.' })
+    await new Promise(resolve => setTimeout(resolve, 1500))
     await supabase.auth.signOut()
     router.push('/login')
   }

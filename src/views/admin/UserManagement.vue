@@ -10,6 +10,7 @@ import { GlassCard, PrimaryButton, FormInput, EmptyState, AppSelect } from '@/co
 import UserModal from '@/components/admin/UserModal.vue'
 import UserImportModal from '@/components/admin/UserImportModal.vue'
 import Swal from 'sweetalert2'
+import { toast } from 'gooey-toast'
 
 const users = ref([])
 const loading = ref(true)
@@ -59,7 +60,7 @@ const fetchUsers = async () => {
   if (searchQuery.value) query = query.ilike('full_name', `%${searchQuery.value}%`)
   if (roleFilter.value) query = query.eq('role', roleFilter.value)
   const { data, count, error } = await query
-  if (error) Swal.fire('Error', error.message, 'error')
+  if (error) toast.error({ title: 'Error', description: error.message })
   else { users.value = data; totalCount.value = count || 0 }
   loading.value = false
 }
@@ -117,9 +118,9 @@ const handleBulkDelete = async () => {
   selectedUsers.value = []
 
   if (failCount > 0) {
-    Swal.fire('Selesai', `Berhasil menghapus ${successCount} user, Gagal menghapus ${failCount} user.`, 'warning')
+    toast.warning({ title: 'Selesai', description: `Berhasil menghapus ${successCount} user, Gagal menghapus ${failCount} user.` })
   } else {
-    Swal.fire({ icon: 'success', title: 'Berhasil dihapus', timer: 1500, showConfirmButton: false })
+    toast.success({ title: 'Berhasil dihapus' })
   }
   
   fetchUsers()
@@ -144,12 +145,12 @@ const handleDelete = async (user) => {
     // Fallback: hapus profiles saja jika RPC belum ada
     const { error: profileError } = await supabase.from('profiles').delete().eq('id', user.id)
     if (profileError) {
-      Swal.fire('Gagal', profileError.message, 'error')
+      toast.error({ title: 'Gagal', description: profileError.message })
       return
     }
   }
 
-  Swal.fire({ icon: 'success', title: 'Berhasil dihapus', timer: 1200, showConfirmButton: false })
+  toast.success({ title: 'Berhasil dihapus' })
   fetchUsers()
 }
 
