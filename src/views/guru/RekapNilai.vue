@@ -710,86 +710,74 @@ const openGradingModal = (result) => {
           <!-- Data: Sudah Mengerjakan -->
           <tbody v-else-if="activeTab === 'mengerjakan'" class="divide-y divide-venus-50">
             <tr v-for="res in filteredResults" :key="res.id" class="hover:bg-venus-50/40 transition-colors">
-              <!-- Siswa -->
-              <td class="px-6 py-4">
-                <div class="flex items-center gap-3">
-                  <div class="w-8 h-8 rounded-lg bg-primary-50 text-primary-600 text-sm font-semibold flex items-center justify-center shrink-0">
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded-lg bg-primary-50 text-primary-600 text-xs font-semibold flex items-center justify-center shrink-0">
                     {{ res.profiles?.full_name?.charAt(0) || '?' }}
                   </div>
-                  <div>
-                    <p class="font-medium text-venus-800">{{ res.profiles?.full_name || '—' }}</p>
-                    <p class="text-[11px] text-venus-400">{{ res.profiles?.email || '' }}</p>
+                  <div class="min-w-0">
+                    <p class="font-medium text-venus-800 text-sm truncate">{{ res.profiles?.full_name || '—' }}</p>
+                    <p class="text-[11px] text-venus-400 truncate">{{ res.profiles?.email || '' }}</p>
                   </div>
                 </div>
               </td>
 
-              <!-- Ujian -->
-              <td class="px-6 py-4">
-                <p class="text-venus-700 font-medium truncate max-w-[160px]">{{ res.ujian?.nama || '—' }}</p>
-                <p class="text-[11px] text-venus-400">{{ res.ujian?.mapel?.nama }} · {{ res.ujian?.kelas?.nama }}</p>
+              <td class="px-3 py-3">
+                <p class="text-venus-700 font-medium text-sm truncate" :title="res.ujian?.nama">{{ res.ujian?.nama || '—' }}</p>
+                <p class="text-[11px] text-venus-400 truncate">{{ res.ujian?.mapel?.nama }} · {{ res.ujian?.kelas?.nama }}</p>
               </td>
 
-              <!-- Nilai Akhir -->
-              <td class="px-6 py-4 text-center">
-                <div class="flex flex-col items-center">
-                  <span
-                    class="inline-block px-2.5 py-1 rounded-lg text-sm font-bold"
-                    :class="res.pg_score == null ? 'text-venus-400' :
-                      res.pg_score >= 70 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'"
-                  >
-                    {{ res.pg_score ?? '—' }}
-                  </span>
-                  <!-- Rincian PG & Essay -->
-                  <span v-if="res.pg_score != null && res.essayStatus !== 'no_essay'" class="text-[10px] text-venus-400 mt-1">
-                    PG: {{ getPgOnlyScore(res) }} | Essay: {{ getEssayTotal(res) }}
-                  </span>
-                  <span v-else-if="res.pg_score != null && res.essayStatus === 'no_essay'" class="text-[10px] text-venus-400 mt-1">
-                    Murni PG
-                  </span>
-                </div>
+              <td class="px-3 py-3 text-center">
+                <span
+                  class="inline-flex items-center justify-center min-w-[40px] px-2.5 py-1 rounded-lg text-sm font-bold"
+                  :class="res.pg_score == null ? 'text-venus-400 bg-venus-50' :
+                    res.pg_score >= 70 ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100' : 'bg-red-50 text-red-600 ring-1 ring-red-100'"
+                >
+                  {{ res.pg_score ?? '—' }}
+                </span>
+                <p v-if="res.pg_score != null && res.essayStatus !== 'no_essay'" class="text-[10px] text-venus-400 mt-0.5 whitespace-nowrap">
+                  PG {{ getPgOnlyScore(res) }} + Essay {{ getEssayTotal(res) }}
+                </p>
               </td>
 
-              <!-- Essay -->
-              <td class="px-6 py-4 text-center">
+              <td class="px-3 py-3 text-center">
                 <span
                   v-if="res.essayStatus === 'no_essay'"
-                  class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-50 text-slate-400"
-                >
-                  Tidak Ada Essay
-                </span>
+                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-slate-50 text-slate-400 whitespace-nowrap"
+                >—</span>
                 <span
                   v-else
-                  class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold"
+                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold whitespace-nowrap"
                   :class="res.essayStatus === 'graded' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-600'"
                 >
-                  <component :is="res.essayStatus === 'graded' ? CheckCircle2 : Clock" :size="11" />
-                  {{ res.essayStatus === 'graded' ? 'Sudah Dinilai' : 'Belum Dinilai' }}
+                  <component :is="res.essayStatus === 'graded' ? CheckCircle2 : Clock" :size="10" />
+                  {{ res.essayStatus === 'graded' ? 'Dinilai' : 'Belum' }}
                 </span>
               </td>
 
-              <!-- Waktu -->
-              <td class="px-6 py-4 text-center text-xs text-venus-400">
+              <td class="px-3 py-3 text-xs text-venus-500 whitespace-nowrap">
                 {{ new Date(res.submitted_at).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' }) }}
               </td>
 
-              <!-- Aksi -->
-              <td class="px-6 py-4 text-right">
-                <div class="flex items-center justify-end gap-2">
+              <td class="px-3 py-3 text-right">
+                <div class="flex items-center justify-end gap-1.5">
                   <button
                     type="button"
                     @click="resetSatu(res)"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-red-100 bg-white text-xs font-medium text-red-400 hover:border-red-300 hover:text-red-500 transition-colors"
+                    class="pressable-soft rounded-lg border border-red-100 bg-white p-1.5 text-red-400 hover:border-red-300 hover:text-red-500 transition-colors"
+                    title="Reset Jawaban"
+                    aria-label="Reset jawaban"
                   >
-                    <RotateCcw :size="12" />
-                    Reset
+                    <RotateCcw :size="14" />
                   </button>
                   <button
                     type="button"
                     @click="openGradingModal(res)"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-venus-200 bg-white text-xs font-medium text-venus-600 hover:text-primary-600 hover:border-primary-200 transition-colors shadow-ios-sm"
+                    class="pressable-soft rounded-lg border border-venus-200 bg-white p-1.5 text-venus-500 hover:text-primary-600 hover:border-primary-200 transition-colors shadow-ios-sm"
+                    title="Koreksi Jawaban"
+                    aria-label="Koreksi jawaban"
                   >
-                    <Edit3 :size="13" />
-                    Koreksi
+                    <Edit3 :size="14" />
                   </button>
                 </div>
               </td>
@@ -804,24 +792,24 @@ const openGradingModal = (result) => {
               </td>
             </tr>
             <tr v-for="siswa in belumMengerjakan" :key="siswa.id" class="hover:bg-red-50/30 transition-colors">
-              <td class="px-6 py-4">
-                <div class="flex items-center gap-3">
-                  <div class="w-8 h-8 rounded-lg bg-red-50 text-red-400 text-sm font-semibold flex items-center justify-center shrink-0">
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-8 h-8 rounded-lg bg-red-50 text-red-400 text-xs font-semibold flex items-center justify-center shrink-0">
                     {{ siswa.full_name?.charAt(0) || '?' }}
                   </div>
-                  <div>
-                    <p class="font-medium text-venus-800">{{ siswa.full_name || '—' }}</p>
-                    <p class="text-[11px] text-venus-400">{{ siswa.email || '' }}</p>
+                  <div class="min-w-0">
+                    <p class="font-medium text-venus-800 text-sm truncate">{{ siswa.full_name || '—' }}</p>
+                    <p class="text-[11px] text-venus-400 truncate">{{ siswa.email || '' }}</p>
                   </div>
                 </div>
               </td>
-              <td colspan="4" class="px-6 py-4">
-                <span class="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-500">
-                  <Clock :size="12" />
+              <td colspan="4" class="px-3 py-3">
+                <span class="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-red-500">
+                  <Clock :size="11" />
                   Belum mengumpulkan jawaban
                 </span>
               </td>
-              <td class="px-6 py-4 text-right text-xs text-venus-400">—</td>
+              <td class="px-3 py-3 text-right text-xs text-venus-400">—</td>
             </tr>
           </tbody>
         </table>
