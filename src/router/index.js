@@ -24,7 +24,9 @@ const router = createRouter({
     },
     {
       path: '/',
-      redirect: '/login'
+      name: 'landing',
+      component: () => import('@/views/LandingView.vue'),
+      meta: { guestOnly: true }
     },
     {
       path: '/admin',

@@ -10,6 +10,8 @@
     "format": "oxfmt src/"
   },
   "dependencies": {
+    "@hugeicons/core-free-icons": "^4.2.2",
+    "@hugeicons/vue": "^1.0.7",
     "@supabase/supabase-js": "^2.103.0",
     "@tiptap/extension-color": "^3.22.5",
     "@tiptap/extension-highlight": "^3.22.5",
